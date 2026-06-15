@@ -5,14 +5,11 @@ import io
 import re
 import os
 
-# Configuração da página e personalização de cores da empresa
 st.set_page_config(page_title="Separador de Comprovantes", layout="centered")
 
 # --- CUSTOMIZAÇÃO DE CORES DA EMPRESA ---
-# Você pode alterar as cores abaixo trocando os códigos hexadecimais (ex: #007BFF)
 st.markdown("""
     <style>
-    /* Cor do botão principal */
     div.stButton > button:first-child {
         background-color: #007BFF;
         color: white;
@@ -24,7 +21,6 @@ st.markdown("""
         background-color: #0056b3;
         color: white;
     }
-    /* Estilo do título */
     .titulo-empresa {
         font-size: 32px;
         font-weight: bold;
@@ -35,14 +31,20 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- EXIBIÇÃO DA LOGO DA EMPRESA ---
-# Verifica se você enviou a imagem 'logo.png' para o GitHub. Se sim, exibe ela centralizada.
-if os.path.exists("logo.png"):
+# --- SISTEMA INTELIGENTE PARA PEGAR A LOGO ---
+# Ele vai procurar qualquer arquivo que comece com o nome 'logo' na sua pasta do GitHub
+imagem_logo = None
+for arquivo in os.listdir("."):
+    if arquivo.lower().startswith("logo") and arquivo.lower().endswith((".png", ".jpg", ".jpeg")):
+        imagem_logo = arquivo
+        break
+
+if imagem_logo:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.image("logo.png", use_container_width=True)
+        st.image(imagem_logo, use_container_width=True)
 
-# Título e textos customizados para a empresa
+# Título e textos customizados
 st.markdown('<p class="titulo-empresa">SISTEMA DE GESTÃO DE COMPROVANTES</p>', unsafe_allow_html=True)
 st.write("---")
 st.markdown("""
@@ -68,10 +70,8 @@ if uploaded_files:
         zip_buffer = io.BytesIO()
         nomes_contagem = {}
         
-        # Barra de progresso visual para a equipe acompanhar o andamento
         barra_progresso = st.progress(0)
         status_texto = st.empty()
-        
         total_arquivos = len(uploaded_files)
         
         with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
@@ -101,7 +101,6 @@ if uploaded_files:
                         
                         zip_file.writestr(f"{nome_final}.pdf", pag_buf.read())
                 
-                # Atualiza a barra de progresso na tela
                 barra_progresso.progress((idx + 1) / total_arquivos)
                         
         status_texto.empty()
