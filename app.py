@@ -17,13 +17,10 @@ st.set_page_config(
 # --- CSS AVANÇADO PARA DESIGN CORPORATIVO PROFISSIONAL ---
 st.markdown("""
     <style>
-    /* Ajustes Gerais de Fundo e Tipografia */
     .stApp {
         background-color: #F8F9FA !important;
         font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     }
-    
-    /* Customização Total da Barra Lateral Left */
     section[data-testid="stSidebar"] {
         background-color: #1E293B !important;
         padding-top: 20px;
@@ -34,8 +31,6 @@ st.markdown("""
         color: #F1F5F9 !important;
         font-weight: 500 !important;
     }
-    
-    /* Títulos Principais das Páginas */
     .header-painel {
         font-size: 28px !important;
         font-weight: 700 !important;
@@ -47,8 +42,6 @@ st.markdown("""
         color: #64748B !important;
         margin-bottom: 25px !important;
     }
-    
-    /* Caixa Vermelha do Título "Sistema Pro" */
     .logo-box {
         background-color: #EF4444;
         color: white !important;
@@ -59,8 +52,6 @@ st.markdown("""
         text-align: center;
         margin-bottom: 25px;
     }
-    
-    /* Cards e Containers Brancos Elevados (Cards Estilo Dashboard) */
     div[data-testid="stForm"], .stDropzone, div.block-container > div {
         background-color: #FFFFFF !important;
         border: 1px solid #E2E8F0 !important;
@@ -69,14 +60,10 @@ st.markdown("""
         box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.02) !important;
         margin-bottom: 20px !important;
     }
-    
-    /* Correção do Corretor de Arquivos (Drag and Drop) */
     .stDropzone {
         border: 2px dashed #CBD5E1 !important;
         background-color: #F8FAFC !important;
     }
-    
-    /* Botões Principais Estilo Moderno */
     div.stButton > button {
         background-color: #2563EB !important;
         color: #FFFFFF !important;
@@ -91,8 +78,6 @@ st.markdown("""
         background-color: #1D4ED8 !important;
         box-shadow: 0 4px 12px rgba(37,99,235,0.2) !important;
     }
-    
-    /* Ajustes nas Tabelas de Dados */
     div[data-testid="stDataFrame"] {
         border-radius: 8px !important;
         overflow: hidden !important;
@@ -101,7 +86,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Definição dos Arquivos de Banco de Dados Locais
 ARQUIVO_CERTIDOES = "dados_certidoes.csv"
 ARQUIVO_CONTRATOS = "dados_contratos.csv"
 
@@ -116,7 +100,6 @@ def carregar_dados(arquivo, colunas):
 def salvar_dados(df, arquivo):
     df.to_csv(arquivo, index=False)
 
-# Inicializações estáveis
 if 'certidoes' not in st.session_state:
     st.session_state.certidoes = carregar_dados(ARQUIVO_CERTIDOES, ["Nome", "Link", "Vencimento"])
 if 'contratos' not in st.session_state:
@@ -136,7 +119,6 @@ with st.sidebar:
 
 # --- CONTEÚDO PRINCIPAL ---
 
-# PÁGINA 1: SEPARADOR DE COMPROVANTES
 if opcao_menu == "Separador de Comprovantes":
     st.markdown('<div class="header-painel">📄 Separador Inteligente de Comprovantes</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-painel">Divisão otimizada de lotes de PDFs integrados através da extração nominal automatizada do favorecido.</div>', unsafe_allow_html=True)
@@ -189,7 +171,6 @@ if opcao_menu == "Separador de Comprovantes":
             st.success(f"🎉 Sucesso! {total_arquivos} arquivo(s) processado(s) com precisão.")
             st.download_button("📥 Baixar Arquivos Organizados (.ZIP)", zip_buffer.getvalue(), "comprovantes.zip", "application/zip")
 
-# PÁGINA 2: CONTROLE DE CERTIDÕES
 elif opcao_menu == "Controle de Certidões":
     st.markdown('<div class="header-painel">📋 Painel de Controle de Certidões</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-painel">Gerencie a validade de certidões federais, estaduais e municipais para evitar inabilitações em certames.</div>', unsafe_allow_html=True)
@@ -230,7 +211,6 @@ elif opcao_menu == "Controle de Certidões":
                 "Data de Vencimento": vencimento.strftime("%d/%m/%Y")
             })
         st.dataframe(pd.DataFrame(lista_exibicao), use_container_width=True)
-        
         st.write("")
         if st.button("⚠️ Apagar Todas as Certidões"):
             st.session_state.certidoes = pd.DataFrame(columns=["Nome", "Link", "Vencimento"])
@@ -239,5 +219,13 @@ elif opcao_menu == "Controle de Certidões":
     else:
         st.info("Nenhuma certidão monitorada neste momento.")
 
-# PÁGINA 3: CIDADES GANHAS (CONTRATOS E DIÁRIOS OFICIAIS)
 else:
+    st.markdown('<div class="header-painel">🏙️ Monitoramento de Cidades Ganhas & Atas</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-painel">Controle de praças arrematadas com alertas visuais integrados para consulta de Diários Oficiais locais.</div>', unsafe_allow_html=True)
+    
+    with st.form("form_contrato", clear_on_submit=True):
+        st.markdown("#### ➕ Registrar Novo Contrato / Localidade")
+        cidade = st.text_input("Município / Estado / Órgão Público")
+        num_contrato = st.text_input("Identificação do Contrato ou Ata (Ex: 045/2026)")
+        modalidade = st.selectbox("Modalidade da Licitação Relacionada", [
+            "Concorrência Eletrônica", "Pregão Eletrônico", "Dispensa de Licitação", 
