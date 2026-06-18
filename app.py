@@ -4,6 +4,7 @@ from pypdf import PdfWriter, PdfReader
 import io
 import re
 import os
+import datetime  # Correção do erro: importando a biblioteca de data corretamente
 
 # Configuração estável do painel principal
 st.set_page_config(page_title="Sistema Pro - Licitações", layout="wide")
@@ -58,7 +59,7 @@ with st.sidebar:
         ["Separador de Comprovantes", "Controle de Certidões", "Cidades Ganhas (Contratos)"]
     )
     st.write("---")
-    st.caption("Versão 4.5 • Sistema Completo")
+    st.caption("Versão 4.6 • Correção do Calendário")
 
 # --- PÁGINA 1: SEPARADOR DE COMPROVANTES ---
 if opcao_menu == "Separador de Comprovantes":
@@ -134,7 +135,7 @@ elif opcao_menu == "Controle de Certidões":
     st.write("### ➕ Cadastrar Nova Certidão")
     nome_cert = st.text_input("Nome / Órgão Emissor")
     link_cert = st.text_input("URL / Link Direto de Acesso")
-    venc_cert = st.date_input("Data de Vencimento Oficial", datetime.today().date())
+    venc_cert = st.date_input("Data de Vencimento Oficial", datetime.date.today())
     
     if st.button("Salvar Certidão no Banco"):
         if nome_cert:
@@ -151,7 +152,7 @@ elif opcao_menu == "Controle de Certidões":
     df_cert = st.session_state.certidoes
     if not df_cert.empty:
         lista_exibicao = []
-        hoje = datetime.today().date()
+        hoje = datetime.date.today()
         for idx, row in df_cert.iterrows():
             vencimento = row["Vencimento"]
             status = "🔴 VENCIDA" if vencimento < hoje else (f"🟡 ATENÇÃO ({(vencimento - hoje).days} dias)" if (vencimento - hoje).days <= 10 else "🟢 EM DIA")
@@ -165,7 +166,7 @@ elif opcao_menu == "Controle de Certidões":
     else:
         st.info("Nenhuma certidão cadastrada.")
 
-# --- PÁGINA 3: CIDADES GANHAS ---
+# --- PAGINA 3: CIDADES GANHAS ---
 else:
     import pandas as pd
     st.title("🏙️ Monitoramento de Cidades Ganhas & Atas")
