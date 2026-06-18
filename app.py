@@ -59,7 +59,7 @@ with st.sidebar:
         ["Separador de Comprovantes", "Controle de Certidões", "Cidades Ganhas (Contratos)"]
     )
     st.write("---")
-    st.caption("Versão 5.1 • Alinhamento Corrigido")
+    st.caption("Versão 5.2 • Correção de Parâmetros")
 
 # --- CONTEÚDO DINÂMICO ---
 
@@ -116,7 +116,8 @@ if opcao_menu == "Separador de Comprovantes":
                         escritor.write(pdf_pagina_buffer)
                         pdf_pagina_buffer.seek(0)
                         
-                        zip_file.writestr(name=nome_arquivo, data=pdf_pagina_buffer.read())
+                        # Correção aqui: removidos os nomes dos parâmetros de chamada
+                        zip_file.writestr(nome_arquivo, pdf_pagina_buffer.read())
                         barra_progresso.progress((i + 1) / total_paginas)
                         
             st.success("🎉 Todos os comprovantes foram processados!")
