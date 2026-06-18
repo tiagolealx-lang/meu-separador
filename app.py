@@ -50,7 +50,8 @@ if uploaded_file is not None:
         total_paginas = len(leitor.pages)
         barra_progresso = st.progress(0)
         
-        with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+        # O segredo está aqui: o bloco 'with' garante que o ZIP feche e salve certinho
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
             for i in range(total_paginas):
                 pagina = leitor.pages[i]
                 nome = extrair_nome_favorecido(pagina)
@@ -78,10 +79,13 @@ if uploaded_file is not None:
                 zip_file.writestr(f"{nome_final}.pdf", pag_buf.read())
                 barra_progresso.progress((i + 1) / total_paginas)
                 
+        # Move o ponteiro do buffer para o início para que o download consiga ler os dados inteiros
+        zip_data = zip_buffer.getvalue()
+                
         st.success("🎉 Todos os comprovantes foram separados!")
         st.download_button(
             label="📥 Baixar Pasta de Comprovantes (.ZIP)",
-            data=zip_buffer.getvalue(),
+            data=zip_data,
             file_name="comprovantes_salvos.zip",
             mime="application/zip"
         )
