@@ -65,7 +65,6 @@ if opcao_menu == "Separador e Conferência":
         st.markdown("#### 📊 2. Planilha de Conferência (Excel)")
         excel_file = st.file_uploader("Upload Excel", type=["xlsx"], accept_multiple_files=False, label_visibility="collapsed")
 
-    # Sistema inteligente para ler as abas do Excel antes de processar
     aba_selecionada = None
     if excel_file is not None:
         try:
@@ -74,7 +73,7 @@ if opcao_menu == "Separador e Conferência":
             st.markdown("#### 📑 3. Selecione a Aba da Planilha para Conferir")
             aba_selecionada = st.selectbox("Escolha uma aba para analisar:", abas_disponiveis)
         except Exception as e:
-            st.error(f"Erro ao ler as abas do arquivo Excel: {e}")
+            st.error("Erro ao carregar abas do arquivo Excel.")
 
     def limpar_texto(t):
         return re.sub(r'[^a-zA-Z0-9]', '', str(t).upper().strip())
@@ -88,9 +87,9 @@ if opcao_menu == "Separador e Conferência":
                 nome = re.sub(r'[\\/*?:"<>|]', "", res.group(1).strip())[:40]
                 break
         valores = re.findall(r'(?:R\$\s*)?(\d+(?:\.\d{3})*,\d{2})', texto)
-        valor_achado = valores[0] if valores else "0,00"
+        valor_achado = valores if valores else "0,00"
         contas = re.findall(r'(?:Conta|C/C|Agência/Conta):\s*([0-9Xx-]+)', texto, re.IGNORECASE)
-        conta_achada = contas[0] if contas else "Nao_Encontrada"
+        conta_achada = contas if contas else "Nao_Encontrada"
         return nome, valor_achado, conta_achada
 
     if uploaded_files:
@@ -131,7 +130,6 @@ if opcao_menu == "Separador e Conferência":
             st.success("🎉 Separação dos PDFs concluída!")
             st.download_button("📥 Baixar Comprovantes Separados (.ZIP)", zip_buffer.getvalue(), "comprovantes.zip", "application/zip")
             
-            # Cruzamento de dados focado estritamente na aba escolhida
             if excel_file is not None and aba_selecionada is not None:
                 st.write("---")
                 st.markdown(f"### 📊 Relatório de Auditoria — Aba: `{aba_selecionada}`")
@@ -170,3 +168,7 @@ if opcao_menu == "Separador e Conferência":
                             })
                         st.dataframe(pd.DataFrame(relatorio_final), use_container_width=True)
                 except Exception as e:
+                    st.error("Erro ao cruzar os dados da planilha.")
+
+# PÁGINA 2: CERTIDÕES
+elif opcao_menu == "Controle de Certidões":
