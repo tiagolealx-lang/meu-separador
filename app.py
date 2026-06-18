@@ -28,38 +28,30 @@ if 'certidoes' not in st.session_state:
 if 'contratos' not in st.session_state:
     st.session_state.contratos = carregar_dados(ARQUIVO_CONTRATOS, ["Cidade", "Contrato", "Modalidade", "Status"])
 
-# --- EXTRATOR DE NOME ULTRA COMPATÍVEL E LIMPO ---
+# --- EXTRATOR DIRETO APENAS DO NOME DO FAVORECIDO ---
 def extrair_nome_comprovante(pagina_pdf):
     try:
         texto = pagina_pdf.extract_text()
-        if not texto or len(texto.strip()) < 5:
+        if not texto:
             return None
             
+        # Padrões diretos para capturar apenas o que vem após a palavra indicadora
         padroes = [
-            r"(?:Favorecido|Nome do Favorecido|Nome|Recebedor|Beneficiário|Nome do Beneficiário|Destinatário):\s*([^\n]+)",
-            r"(?:Para|Pagar para|Crédito para|Nome Completo):\s*([^\n]+)",
-            r"NOME:\s*([^\n]+)",
-            r"FAVORECIDO:\s*([^\n]+)"
+            r"Favorecido:\s*([^\n]+)",
+            r"Nome do Favorecido:\s*([^\n]+)",
+            r"Nome:\s*([^\n]+)",
+            r"Recebedor:\s*([^\n]+)",
+            r"Beneficiário:\s*([^\n]+)"
         ]
         
         for padrao in padroes:
             resultado = re.search(padrao, texto, re.IGNORECASE)
             if resultado:
                 nome = resultado.group(1).strip()
-                
-                # --- AQUI ESTÁ A MÁGICA PARA DEIXAR SÓ O NOME ---
-                # 1. Remove qualquer menção a valores monetários como R$, $, reais, etc.
-                nome = re.sub(r'(?:R\$\s*|\$\s*|VALOR|REAIS|CONTA|AGENCIA)', '', nome, flags=re.IGNORECASE)
-                # 2. Remove todos os números (valores, CPFs, contas, datas) que estejam na mesma linha
-                nome = re.sub(r'[0-9.,_/\-]+', '', nome)
-                # 3. Remove espaços extras que sobraram
-                nome_limpo = re.sub(r'\s+', ' ', nome).strip()
-                
-                # Remove caracteres proibidos do Windows para arquivos
-                nome_final = re.sub(r'[\\/*?:"<>|]', "", nome_limpo)
-                
-                if len(nome_final) > 2:
-                    return nome_final[:40].strip().upper()
+                # Remove apenas caracteres proibidos pelo Windows em nomes de arquivos (Ex: / \ * ?)
+                nome_limpo = re.sub(r'[\\/*?:"<>|]', "", nome)
+                if len(nome_limpo) > 2:
+                    return nome_limpo.strip().upper()
     except:
         pass
     return None
@@ -94,10 +86,11 @@ if opcao_menu == "Separador de Comprovantes":
                         pagina = leitor.pages[i]
                         nome = extrair_nome_comprovante(pagina)
                         
+                        # Se não achar de jeito nenhum, coloca um aviso padrão temporário
                         if not nome:
-                            nome_base_arquivo = os.path.splitext(uploaded_file.name)[0]
-                            nome = f"VERIFICAR_{nome_base_arquivo.upper()}_PAG_{i+1}"
+                            nome = f"FAVORECIDO_NAO_ENCONTRADO_PAG_{i+1}"
                         
+                        # Se o nome já existir no lote, apenas adiciona o número para não sobrescrever
                         if nome in nomes_contagem:
                             nomes_contagem[nome] += 1
                             nome_final = f"{nome} {nomes_contagem[nome]}"
