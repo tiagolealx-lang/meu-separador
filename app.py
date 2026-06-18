@@ -1,13 +1,12 @@
 import streamlit as st
-import pdfplumber
 from pypdf import PdfWriter, PdfReader
-import io, re, os
+import io
+import re
+import os
 import pandas as pd
 from datetime import datetime
-from pdf2image import convert_from_bytes
-import pytesseract
 
-# Configuração Base do Painel
+# Configuração Base do Aplicativo
 st.set_page_config(page_title="Sistema Pro - Licitações", layout="wide")
 
 ARQUIVO_CERTIDOES = "dados_certidoes.csv"
@@ -29,46 +28,35 @@ if 'certidoes' not in st.session_state:
 if 'contratos' not in st.session_state:
     st.session_state.contratos = carregar_dados(ARQUIVO_CONTRATOS, ["Cidade", "Contrato", "Modalidade", "Status"])
 
-# --- FUNÇÃO AVANÇADA DE CAPTURA COM OCR DE IMAGEM ---
-def extrair_nome(texto_digital, arquivo_bytes, numero_pagina):
-    texto = texto_digital
-    
-    # Se o PDF for uma imagem/foto e veio em branco, aplica o OCR para extrair as letras da imagem
-    if not texto or len(texto.strip()) < 5:
-        try:
-            imagens = convert_from_bytes(arquivo_bytes, first_page=numero_pagina+1, last_page=numero_pagina+1)
-            if imagens:
-                texto = pytesseract.image_to_string(imagens[0], lang='por')
-        except:
-            pass
-
-    if not texto or not texto.strip():
-        return f"Comprovante_Pagina_{numero_pagina+1}"
-        
-    padroes = [
-        r"(?:Favorecido|Nome do Favorecido|Recebedor|Beneficiário|Nome|Destinatário|Pessoa):\s*([^\n]+)",
-        r"(?:Para|Pagar para|Crédito para):\s*([^\n]+)"
-    ]
-    
-    for p in padroes:
-        res = re.search(p, texto, re.IGNORECASE)
-        if res:
-            nome = res.group(1).strip()
-            nome_limpo = re.sub(r'[\\/*?:"<>|]', "", nome)
-            if len(nome_limpo) > 2:
-                return nome_limpo[:40].strip()
-                
-    linhas = [l.strip() for l in texto.split('\n') if l.strip()]
-    for linha in linhas[:6]:
-        if re.match(r'^[A-ZÁÉÍÓÚÂÊÔÀ ]+$', linha) and len(linha) > 5:
-            return re.sub(r'[\\/*?:"<>|]', "", linha)[:40].strip()
+# --- EXTRATOR DE NOME ULTRA COMPATÍVEL ---
+def extrair_nome_comprovante(pagina_pdf):
+    try:
+        # Extrai o texto usando a biblioteca nativa pypdf
+        texto = pagina_pdf.extract_text()
+        if not texto or len(texto.strip()) < 5:
+            return None
             
-    if len(linhas) > 1:
-        return re.sub(r'[\\/*?:"<>|]', "", linhas[1])[:40].strip()
+        # Padrões de busca amplos para pegar o favorecido em qualquer banco (Itaú, BB, Caixa, etc.)
+        padroes = [
+            r"(?:Favorecido|Nome do Favorecido|Nome|Recebedor|Beneficiário|Nome do Beneficiário|Destinatário):\s*([^\n]+)",
+            r"(?:Para|Pagar para|Crédito para|Nome Completo):\s*([^\n]+)",
+            r"NOME:\s*([^\n]+)",
+            r"FAVORECIDO:\s*([^\n]+)"
+        ]
         
-    return f"Comprovante_Pagina_{numero_pagina+1}"
+        for padrao in padroes:
+            resultado = re.search(padrao, texto, re.IGNORECASE)
+            if resultado:
+                nome = resultado.group(1).strip()
+                # Remove caracteres que o Windows não aceita em arquivos
+                nome_limpo = re.sub(r'[\\/*?:"<>|]', "", nome)
+                if len(nome_limpo) > 2:
+                    return nome_limpo[:40].strip().upper()
+    except:
+        pass
+    return None
 
-# --- CONSTRUÇÃO DO MENU LATERAL ---
+# --- BARRA LATERAL ---
 with st.sidebar:
     st.title("💼 Sistema Pro")
     opcao_menu = st.radio("Navegação", ["Separador de Comprovantes", "Controle de Certidões", "Cidades Ganhas (Contratos)"])
@@ -76,7 +64,7 @@ with st.sidebar:
 # --- PÁGINA 1: SEPARADOR ---
 if opcao_menu == "Separador de Comprovantes":
     st.title("📄 Separador Inteligente de Comprovantes")
-    st.write("Suporta PDFs digitais nativos e comprovantes escaneados em formato de foto.")
+    st.write("Recorte de PDFs em lote com identificação e renomeação automática de favorecidos.")
     
     uploaded_files = st.file_uploader("Selecione os arquivos PDF", type=["pdf"], accept_multiple_files=True)
 
@@ -91,30 +79,39 @@ if opcao_menu == "Separador de Comprovantes":
             with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
                 for idx, uploaded_file in enumerate(uploaded_files):
                     pdf_bytes = uploaded_file.read()
-                    with pdfplumber.open(io.BytesIO(pdf_bytes)) as leitor_txt:
-                        pdf_recortador = PdfReader(io.BytesIO(pdf_bytes))
-                        for i in range(len(leitor_txt.pages)):
-                            txt_digital = leitor_txt.pages[i].extract_text() or ""
-                            
-                            # Envia os bytes e o número da página caso precise rodar o leitor de foto
-                            nome = extrair_nome(txt_digital, pdf_bytes, i)
-                            
-                            if nome in nomes_contagem:
-                                nomes_contagem[nome] += 1
-                                nome_final = f"{nome} {nomes_contagem[nome]}"
-                            else:
-                                nomes_contagem[nome] = 1
-                                nome_final = nome
-                            
-                            escritor = PdfWriter()
-                            escritor.add_page(pdf_recortador.pages[i])
-                            pag_buf = io.BytesIO()
-                            escritor.write(pag_buf)
-                            pag_buf.seek(0)
-                            zip_file.writestr(f"{nome_final}.pdf", pag_buf.read())
+                    leitor = PdfReader(io.BytesIO(pdf_bytes))
+                    total_paginas = len(leitor.pages)
+                    
+                    for i in range(total_paginas):
+                        pagina = leitor.pages[i]
+                        
+                        # Tenta extrair o nome usando a nova lógica calibrada
+                        nome = extrair_nome_comprovante(pagina)
+                        
+                        # Se não encontrar de jeito nenhum, salva com o nome do arquivo original + número para você identificar
+                        if not nome:
+                            nome_base_arquivo = os.path.splitext(uploaded_file.name)[0]
+                            nome = f"VERIFICAR_{nome_base_arquivo}_PAG_{i+1}"
+                        
+                        # Evita arquivos duplicados adicionando número sequencial
+                        if nome in nomes_contagem:
+                            nomes_contagem[nome] += 1
+                            nome_final = f"{nome} {nomes_contagem[nome]}"
+                        else:
+                            nomes_contagem[nome] = 1
+                            nome_final = nome
+                        
+                        # Recorta a página e salva no ZIP
+                        escritor = PdfWriter()
+                        escritor.add_page(pagina)
+                        pag_buf = io.BytesIO()
+                        escritor.write(pag_buf)
+                        pag_buf.seek(0)
+                        zip_file.writestr(f"{nome_final}.pdf", pag_buf.read())
+                        
                     barra.progress((idx + 1) / total)
             
-            st.success("🎉 Processamento concluído com sucesso!")
+            st.success("🎉 Processamento concluído!")
             st.download_button("📥 Baixar Comprovantes Salvos (.ZIP)", zip_buffer.getvalue(), "comprovantes.zip", "application/zip")
 
 # --- PÁGINA 2: CERTIDÕES ---
@@ -138,7 +135,7 @@ elif opcao_menu == "Controle de Certidões":
         hoje = datetime.today().date()
         for idx, row in df_cert.iterrows():
             vencimento = row["Vencimento"]
-            status = "🔴 VENCIDA" if vencimento < hoje else (f"🟡 ATENÇÃO ({(vencimento - hoje).days} dias)" if (vencimento - hoje).days <= 10 else "🟢 EM DIA")
+            status = "🔴 VENCIDA" if vencimento < hoje else (f"🟡 ATENÇÃO ({(vencimento - hoje).days} dias)" if (vencimento - chooses - hoje).days <= 10 else "🟢 EM DIA")
             lista_exibicao.append({"Status": status, "Nome da Certidão": row["Nome"], "Link de Acesso": row["Link"], "Data de Vencimento": vencimento.strftime("%d/%m/%Y")})
         st.dataframe(pd.DataFrame(lista_exibicao), use_container_width=True)
 
