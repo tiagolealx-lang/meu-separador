@@ -6,113 +6,26 @@ import pandas as pd
 from datetime import datetime
 
 # Configuração Base do Aplicativo com Tema Escuro Forçado
-st.set_page_config(
-    page_title="Sistema Pro - Licitações", 
-    layout="wide", 
-    initial_sidebar_state="expanded"
-)
+st.set_page_config(page_title="Sistema Pro - Licitações", layout="wide", initial_sidebar_state="expanded")
 
 # --- DESIGN PREMIUM DARK MODE (CSS) ---
 st.markdown("""
     <style>
-    /* Fundo Geral do Aplicativo */
-    .stApp { 
-        background-color: #0F172A !important; 
-        font-family: 'Segoe UI', Roboto, sans-serif; 
-    }
-    
-    /* Configuração Avançada da Barra Lateral Left */
-    section[data-testid="stSidebar"] { 
-        background-color: #1E293B !important; 
-        padding-top: 20px;
-        border-right: 1px solid #334155 !important;
-    }
-    section[data-testid="stSidebar"] .stMarkdown p, 
-    section[data-testid="stSidebar"] label, 
-    section[data-testid="stSidebar"] span { 
-        color: #F8FAFC !important; 
-        font-weight: 600 !important; 
-    }
-    
-    /* Textos e Títulos da Área Principal */
-    .header-painel { 
-        font-size: 28px !important; 
-        font-weight: 700 !important; 
-        color: #F8FAFC !important; 
-        margin-top: 10px !important;
-    }
-    .sub-painel { 
-        font-size: 14px !important; 
-        color: #94A3B8 !important; 
-        margin-bottom: 25px !important; 
-    }
-    
-    /* Caixa de Identidade do Sistema Pro */
-    .logo-box { 
-        background-color: #EF4444; 
-        color: white !important; 
-        padding: 12px; 
-        border-radius: 8px; 
-        font-weight: 700; 
-        font-size: 18px; 
-        text-align: center; 
-        margin-bottom: 30px; 
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
-    }
-    
-    /* Blocos/Containers de Conteúdo em Grafite Escuro */
-    div[data-testid="stForm"], .stDropzone, div.block-container > div { 
-        background-color: #1E293B !important; 
-        border: 1px solid #334155 !important; 
-        border-radius: 12px !important; 
-        padding: 25px !important; 
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3) !important; 
-        margin-bottom: 25px !important; 
-    }
-    
-    /* Ajustes das Caixas de Texto, Entradas e Inputs no Modo Escuro */
-    label, p, h4 {
-        color: #F1F5F9 !important;
-    }
-    input, select, textarea {
-        background-color: #0F172A !important;
-        color: #F8FAFC !important;
-        border: 1px solid #475569 !important;
-    }
-    
-    /* Área de Arrastar Arquivos (Dropzone) */
-    .stDropzone { 
-        border: 2px dashed #475569 !important; 
-        background-color: #0F172A !important; 
-    }
-    
-    /* Botões Grandes e Modernos em Azul Estilizado */
-    div.stButton > button { 
-        background-color: #2563EB !important; 
-        color: #FFFFFF !important; 
-        font-weight: 600 !important; 
-        border-radius: 8px !important; 
-        width: 100% !important; 
-        height: 48px; 
-        border: none !important; 
-        transition: all 0.2s ease;
-        box-shadow: 0 4px 6px -1px rgba(37,99,235,0.2);
-    }
-    div.stButton > button:hover { 
-        background-color: #1D4ED8 !important; 
-        box-shadow: 0 4px 12px rgba(37,99,235,0.4) !important;
-    }
-    
-    /* Customização das Tabelas de Dados (Dataframe) */
-    div[data-testid="stDataFrame"] { 
-        border-radius: 8px !important; 
-        border: 1px solid #334155 !important; 
-        background-color: #1E293B !important;
-    }
+    .stApp { background-color: #0F172A !important; font-family: 'Segoe UI', Roboto, sans-serif; }
+    section[data-testid="stSidebar"] { background-color: #1E293B !important; padding-top: 20px; border-right: 1px solid #334155 !important; }
+    section[data-testid="stSidebar"] .stMarkdown p, section[data-testid="stSidebar"] label, section[data-testid="stSidebar"] span { color: #F8FAFC !important; font-weight: 600 !important; }
+    .header-painel { font-size: 28px !important; font-weight: 700 !important; color: #F8FAFC !important; margin-top: 10px !important; }
+    .sub-painel { font-size: 14px !important; color: #94A3B8 !important; margin-bottom: 25px !important; }
+    .logo-box { background-color: #EF4444; color: white !important; padding: 12px; border-radius: 8px; font-weight: 700; font-size: 18px; text-align: center; margin-bottom: 30px; }
+    div[data-testid="stForm"], .stDropzone, div.block-container > div { background-color: #1E293B !important; border: 1px solid #334155 !important; border-radius: 12px !important; padding: 25px !important; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3) !important; margin-bottom: 25px !important; }
+    label, p, h4 { color: #F1F5F9 !important; }
+    .stDropzone { border: 2px dashed #475569 !important; background-color: #0F172A !important; }
+    div.stButton > button { background-color: #2563EB !important; color: #FFFFFF !important; font-weight: 600 !important; border-radius: 8px !important; width: 100% !important; height: 48px; border: none !important; }
+    div.stButton > button:hover { background-color: #1D4ED8 !important; }
+    div[data-testid="stDataFrame"] { border-radius: 8px !important; border: 1px solid #334155 !important; background-color: #1E293B !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# Definição e Carregamento estável de arquivos de dados
 ARQUIVO_CERTIDOES = "dados_certidoes.csv"
 ARQUIVO_CONTRATOS = "dados_contratos.csv"
 
@@ -132,43 +45,60 @@ if 'certidoes' not in st.session_state:
 if 'contratos' not in st.session_state:
     st.session_state.contratos = carregar_dados(ARQUIVO_CONTRATOS, ["Cidade", "Contrato", "Modalidade", "Status"])
 
-# --- CONSTRUÇÃO DA BARRA LATERAL (SIDEBAR) ---
 with st.sidebar:
     st.markdown('<div class="logo-box">💼 Sistema Pro</div>', unsafe_allow_html=True)
     st.markdown("### Módulos de Operação")
-    opcao_menu = st.radio(
-        label="Navegação",
-        options=["Separador de Comprovantes", "Controle de Certidões", "Cidades Ganhas (Contratos)"],
-        label_visibility="collapsed"
-    )
+    opcao_menu = st.radio(label="Navegação", options=["Separador e Conferência", "Controle de Certidões", "Cidades Ganhas (Contratos)"], label_visibility="collapsed")
     st.write("---")
-    st.caption("Versão Corporativa 2.5 • Dark Edition")
+    st.caption("Versão Corporativa 3.0 • Premium Dark")
 
-# --- LÓGICA DO CONTEÚDO PRINCIPAL ---
-
-# PÁGINA 1: SEPARADOR
-if opcao_menu == "Separador de Comprovantes":
-    st.markdown('<div class="header-painel">📄 Separador Inteligente de Comprovantes</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-painel">Divisão otimizada de lotes de PDFs integrados através da extração nominal automatizada do favorecido.</div>', unsafe_allow_html=True)
+# PÁGINA 1: SEPARADOR E CONFERÊNCIA COM EXCEL
+if opcao_menu == "Separador e Conferência":
+    st.markdown('<div class="header-painel">📄 Separador & Conferência Inteligente</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-painel">Envie os PDFs dos comprovantes e a planilha Excel para conferência automática de Nome, Conta e Valor.</div>', unsafe_allow_html=True)
     
-    st.markdown("#### 📤 Upload de Arquivos")
-    uploaded_files = st.file_uploader("Upload", type=["pdf"], accept_multiple_files=True, label_visibility="collapsed")
+    col_up1, col_up2 = st.columns(2)
+    with col_up1:
+        st.markdown("#### 📤 1. Arquivos de Comprovantes (PDF)")
+        uploaded_files = st.file_uploader("Upload PDFs", type=["pdf"], accept_multiple_files=True, label_visibility="collapsed")
+    with col_up2:
+        st.markdown("#### 📊 2. Planilha de Conferência (Excel/CSV)")
+        excel_file = st.file_uploader("Upload Excel", type=["xlsx", "csv"], accept_multiple_files=False, label_visibility="collapsed")
 
-    def extrair_nome(texto):
-        padroes = [r"Favorecido:\s*([^\n]+)", r"Nome:\s*([^\n]+)", r"Recebedor:\s*([^\n]+)"]
-        for p in padroes:
+    def limpar_texto(t):
+        return re.sub(r'[^a-zA-Z0-9]', '', str(t).upper().strip())
+
+    def extrair_dados_pdf(texto):
+        # Captura nome do favorecido
+        nome = "Nao_Encontrado"
+        p_nomes = [r"Favorecido:\s*([^\n]+)", r"Nome:\s*([^\n]+)", r"Recebedor:\s*([^\n]+)"]
+        for p in p_nomes:
             res = re.search(p, texto, re.IGNORECASE)
-            if res: return re.sub(r'[\\/*?:"<>|]', "", res.group(1).strip())[:40]
-        return "Favorecido_Nao_Encontrado"
+            if res:
+                nome = re.sub(r'[\\/*?:"<>|]', "", res.group(1).strip())[:40]
+                break
+                
+        # Captura valores (Ex: R$ 1.500,00 ou 1500.00)
+        valores = re.findall(r'(?:R\$\s*)?(\d+(?:\.\d{3})*,\d{2})', texto)
+        valor_achado = valores[0] if valores else "0,00"
+        
+        # Captura números de conta corrente/agência de forma genérica
+        contas = re.findall(r'(?:Conta|C/C|Agência/Conta):\s*([0-9Xx-]+)', texto, re.IGNORECASE)
+        conta_achada = contas[0] if contas else "Nao_Encontrada"
+        
+        return nome, valor_achado, conta_achada
 
     if uploaded_files:
         st.write("")
-        if st.button("🚀 Iniciar Separação de Arquivos"):
+        if st.button("🚀 Processar, Separar e Conferir com Excel"):
             import zipfile
             zip_buffer = io.BytesIO()
             nomes_contagem = {}
             barra = st.progress(0)
             total = len(uploaded_files)
+            
+            # Lista para consolidar tudo o que foi extraído dos PDFs
+            dados_extraidos_pdf = []
             
             with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
                 for idx, uploaded_file in enumerate(uploaded_files):
@@ -177,7 +107,11 @@ if opcao_menu == "Separador de Comprovantes":
                         pdf_recortador = PdfReader(io.BytesIO(pdf_bytes))
                         for i in range(len(leitor_txt.pages)):
                             txt = leitor_txt.pages[i].extract_text() or ""
-                            nome = extrair_nome(txt)
+                            nome, val, conta = extrair_dados_pdf(txt)
+                            
+                            # Adiciona no relatório interno de leitura
+                            dados_extraidos_pdf.append({"Nome_PDF": nome, "Valor_PDF": val, "Conta_PDF": conta})
+                            
                             if nome in nomes_contagem:
                                 nomes_contagem[nome] += 1
                                 nome_final = f"{nome} {nomes_contagem[nome]}"
@@ -192,50 +126,53 @@ if opcao_menu == "Separador de Comprovantes":
                             pag_buf.seek(0)
                             zip_file.writestr(f"{nome_final}.pdf", pag_buf.read())
                     barra.progress((idx + 1) / total)
-            st.success("🎉 Processado com sucesso!")
-            st.download_button("📥 Baixar Arquivos Organizados (.ZIP)", zip_buffer.getvalue(), "comprovantes.zip", "application/zip")
+            
+            st.success("🎉 Separação dos PDFs concluída!")
+            st.download_button("📥 Baixar Comprovantes Separados (.ZIP)", zip_buffer.getvalue(), "comprovantes.zip", "application/zip")
+            
+            # --- LÓGICA DE CRUZAMENTO COM EXCEL ---
+            if excel_file is not None:
+                st.write("---")
+                st.markdown("### 📊 Relatório de Auditoria e Conferência Bancária")
+                
+                try:
+                    df_excel = pd.read_excel(excel_file) if excel_file.name.endswith('xlsx') else pd.read_csv(excel_file)
+                    
+                    # Verificar colunas obrigatórias
+                    colunas_necessarias = ['Nome', 'Conta', 'Valor']
+                    if not all(col in df_excel.columns for col in colunas_necessarias):
+                        st.error("A planilha precisa ter exatamente as colunas: 'Nome', 'Conta' e 'Valor'")
+                    else:
+                        relatorio_final = []
+                        
+                        for _, linha_ex in df_excel.iterrows():
+                            ex_nome = str(linha_ex['Nome']).strip()
+                            ex_conta = str(linha_ex['Conta']).strip()
+                            ex_valor = f"{float(linha_ex['Valor']):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                            
+                            status = "🔴 Não Encontrado"
+                            
+                            # Procura compatibilidade nos dados do PDF
+                            for pdf_item in dados_extraidos_pdf:
+                                nome_bate = limpar_texto(ex_nome) in limpar_texto(pdf_item["Nome_PDF"]) or limpar_texto(pdf_item["Nome_PDF"]) in limpar_texto(ex_nome)
+                                valor_bate = limpar_texto(ex_valor) == limpar_texto(pdf_item["Valor_PDF"])
+                                
+                                if nome_bate and valor_bate:
+                                    status = "🟢 Confirmado"
+                                    break
+                                elif nome_bate and not valor_bate:
+                                    status = "🟡 Valor Divergente"
+                                    break
+                            
+                            relatorio_final.append({
+                                "Resultado": status,
+                                "Nome Planilha": ex_nome,
+                                "Conta Planilha": ex_conta,
+                                "Valor Planilha": f"R$ {ex_valor}"
+                            })
+                            
+                        st.dataframe(pd.DataFrame(relatorio_final), use_container_width=True)
+                except Exception as e:
+                    st.error(f"Erro ao processar a planilha: {e}")
 
 # PÁGINA 2: CERTIDÕES
-elif opcao_menu == "Controle de Certidões":
-    st.markdown('<div class="header-painel">📋 Painel de Controle de Certidões</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-painel">Gerencie a validade de certidões federais, estaduais e municipais de forma centralizada.</div>', unsafe_allow_html=True)
-    
-    with st.form("form_certidao", clear_on_submit=True):
-        st.markdown("#### ➕ Cadastrar Nova Certidão")
-        nome_cert = st.text_input("Nome / Órgão Emissor")
-        link_cert = st.text_input("URL / Link Direto de Acesso")
-        venc_cert = st.date_input("Data de Vencimento Oficial", datetime.today().date())
-        st.write("")
-        botao_cert = st.form_submit_button("Salvar no Banco de Dados")
-        
-    if botao_cert and nome_cert:
-        nova_cert = pd.DataFrame([{"Nome": nome_cert, "Link": link_cert, "Vencimento": venc_cert}])
-        st.session_state.certidoes = pd.concat([st.session_state.certidoes, nova_cert], ignore_index=True)
-        salvar_dados(st.session_state.certidoes, ARQUIVO_CERTIDOES)
-        st.success("Certidão salva com sucesso!")
-        st.rerun()
-        
-    st.write("##")
-    st.markdown("#### 🔍 Certidões Cadastradas")
-    df_cert = st.session_state.certidoes
-    if not df_cert.empty:
-        lista_exibicao = []
-        hoje = datetime.today().date()
-        for idx, row in df_cert.iterrows():
-            vencimento = row["Vencimento"]
-            status = "🔴 VENCIDA" if vencimento < hoje else (f"🟡 ATENÇÃO ({(vencimento - hoje).days} dias)" if (vencimento - hoje).days <= 10 else "🟢 EM DIA")
-            lista_exibicao.append({"Status": status, "Nome da Certidão": row["Nome"], "Link de Acesso": row["Link"], "Data de Vencimento": vencimento.strftime("%d/%m/%Y")})
-        st.dataframe(pd.DataFrame(lista_exibicao), use_container_width=True)
-        st.write("")
-        if st.button("⚠️ Apagar Todas as Certidões"):
-            st.session_state.certidoes = pd.DataFrame(columns=["Nome", "Link", "Vencimento"])
-            if os.path.exists(ARQUIVO_CERTIDOES): os.remove(ARQUIVO_CERTIDOES)
-            st.rerun()
-    else:
-        st.info("Nenhuma certidão monitorada.")
-
-# PÁGINA 3: CIDADES GANHAS
-else:
-    st.markdown('<div class="header-painel">🏙️ Monitoramento de Cidades Ganhas & Atas</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-painel">Controle de praças arrematadas com lembretes para consulta de Diários Oficiais locais.</div>', unsafe_allow_html=True)
-    
