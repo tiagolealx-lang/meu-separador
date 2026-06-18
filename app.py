@@ -28,7 +28,6 @@ if 'certidoes' not in st.session_state:
 if 'contratos' not in st.session_state:
     st.session_state.contratos = carregar_dados(ARQUIVO_CONTRATOS, ["Cidade", "Contrato", "Modalidade", "Status"])
 
-# --- FUNÇÕES AUXILIARES ---
 def limpar_texto(t):
     return re.sub(r'[^a-zA-Z0-9]', '', str(t).upper().strip())
 
@@ -40,68 +39,14 @@ def extrair_dados_pdf(texto):
         if res:
             nome = re.sub(r'[\\/*?:"<>|]', "", res.group(1).strip())[:40]
             break
-            
     valores = re.findall(r'(?:R\$\s*)?(\d+(?:\.\d{3})*,\d{2})', texto)
-    valor_achado = valores[0] if valores else "0,00"
-    
+    valor_achado = valores if valores else ["0,00"]
     contas = re.findall(r'(?:Conta|C/C|Agência/Conta):\s*([0-9Xx-]+)', texto, re.IGNORECASE)
-    conta_achada = contas[0] if contas else "Nao_Encontrada"
-    
-    return nome, valor_achado, conta_achada
+    conta_achada = contas if contas else ["Nao_Encontrada"]
+    return nome, valor_achado[0], conta_achada[0]
 
-def processar_auditoria_excel(excel_file, aba_selecionada, dados_extraidos_pdf):
-    try:
-        df_excel = pd.read_excel(excel_file, sheet_name=aba_selecionada)
-        colunas_necessarias = ['Nome', 'Conta', 'Valor']
-        if not all(col in df_excel.columns for col in colunas_necessarias):
-            st.error(f"Atenção: A aba '{aba_selecionada}' precisa ter as colunas: 'Nome', 'Conta' e 'Valor'")
-            return
-        
-        relatorio_final = []
-        for _, linha_ex in df_excel.iterrows():
-            ex_nome = str(linha_ex['Nome']).strip()
-            ex_conta = str(linha_ex['Conta']).strip()
-            try:
-                ex_valor = f"{float(linha_ex['Valor']):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            except:
-                ex_valor = "0,00"
-            
-            status = "🔴 Não Encontrado"
-            for pdf_item in dados_extraidos_pdf:
-                nome_bate = limpar_texto(ex_nome) in limpar_texto(pdf_item["Nome_PDF"]) or limpar_texto(pdf_item["Nome_PDF"]) in limpar_texto(ex_nome)
-                valor_bate = limpar_texto(ex_valor) == limpar_texto(pdf_item["Valor_PDF"])
-                
-                if nome_bate and valor_bate:
-                    status = "🟢 Confirmado"
-                    break
-                elif nome_bate and not valor_bate:
-                    status = "🟡 Valor Divergente"
-                    break
-            
-            relatorio_final.append({
-                "Resultado": status,
-                "Nome Planilha": ex_nome,
-                "Conta Planilha": ex_conta,
-                "Valor Planilha": f"R$ {ex_valor}"
-            })
-        st.dataframe(pd.DataFrame(relatorio_final), use_container_width=True)
-    except:
-        st.error("Erro ao cruzar os dados com a planilha.")
-
-# --- BARRA LATERAL NATIVA (SIDEBAR) ---
-with st.sidebar:
-    st.title("💼 Sistema Pro")
-    st.write("Escolha o módulo de operação:")
-    opcao_menu = st.sidebar.radio(
-        "Navegação", 
-        ["Separador e Conferência", "Controle de Certidões", "Cidades Ganhas (Contratos)"]
-    )
-    st.write("---")
-    st.caption("Versão 3.8 • Alinhamento Final")
-
-# --- LÓGICA DO CONTEÚDO PRINCIPAL ---
-
-if opcao_menu == "Separador e Conferência":
+# --- FUNÇÃO DA PÁGINA 1 ---
+def renderizar_separador_conferencia():
     st.title("📄 Separador & Conferência Inteligente")
     st.write("Envie os PDFs e selecione a aba específica do seu Excel para realizar a auditoria automática.")
     
@@ -164,9 +109,45 @@ if opcao_menu == "Separador e Conferência":
             if excel_file is not None and aba_selecionada is not None:
                 st.write("---")
                 st.subheader(f"📊 Relatório de Auditoria — Aba: {aba_selecionada}")
-                processar_auditoria_excel(excel_file, aba_selecionada, dados_extraidos_pdf)
+                try:
+                    df_excel = pd.read_excel(excel_file, sheet_name=aba_selecionada)
+                    colunas_necessarias = ['Nome', 'Conta', 'Valor']
+                    if not all(col in df_excel.columns for col in colunas_necessarias):
+                        st.error(f"Erro: A aba '{aba_selecionada}' precisa ter as colunas: 'Nome', 'Conta' e 'Valor'")
+                    else:
+                        relatorio_final = []
+                        for _, linha_ex in df_excel.iterrows():
+                            ex_nome = str(linha_ex['Nome']).strip()
+                            ex_conta = str(linha_ex['Conta']).strip()
+                            try:
+                                ex_valor = f"{float(linha_ex['Valor']):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                            except:
+                                ex_valor = "0,00"
+                            
+                            status = "🔴 Não Encontrado"
+                            for pdf_item in dados_extraidos_pdf:
+                                nome_bate = limpar_texto(ex_nome) in limpar_texto(pdf_item["Nome_PDF"]) or limpar_texto(pdf_item["Nome_PDF"]) in limpar_texto(ex_nome)
+                                valor_bate = limpar_texto(ex_valor) == limpar_texto(pdf_item["Valor_PDF"])
+                                
+                                if nome_bate and valor_bate:
+                                    status = "🟢 Confirmado"
+                                    break
+                                elif nome_bate and not valor_bate:
+                                    status = "🟡 Valor Divergente"
+                                    break
+                            
+                            relatorio_final.append({
+                                "Resultado": status,
+                                "Nome Planilha": ex_nome,
+                                "Conta Planilha": ex_conta,
+                                "Valor Planilha": f"R$ {ex_valor}"
+                            })
+                        st.dataframe(pd.DataFrame(relatorio_final), use_container_width=True)
+                except:
+                    st.error("Erro ao cruzar os dados com a planilha.")
 
-elif opcao_menu == "Controle de Certidões":
+# --- FUNÇÃO DA PÁGINA 2 ---
+def renderizar_certidoes():
     st.title("📋 Painel de Controle de Certidões")
     with st.form("form_certidao", clear_on_submit=True):
         st.write("### ➕ Cadastrar Nova Certidão")
@@ -198,8 +179,11 @@ elif opcao_menu == "Controle de Certidões":
             st.session_state.certidoes = pd.DataFrame(columns=["Nome", "Link", "Vencimento"])
             if os.path.exists(ARQUIVO_CERTIDOES): os.remove(ARQUIVO_CERTIDOES)
             st.rerun()
+    else:
+        st.info("Nenhuma certidão cadastrada.")
 
-else:
+# --- FUNÇÃO DA PÁGINA 3 ---
+def renderizar_cidades():
     st.title("🏙️ Monitoramento de Cidades Ganhas & Atas")
     with st.form("form_contrato", clear_on_submit=True):
         st.write("### ➕ Registrar Novo Contrato / Localidade")
