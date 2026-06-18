@@ -5,49 +5,10 @@ import io, re, os
 import pandas as pd
 from datetime import datetime
 
-# Configuração Base do Aplicativo com Tema Escuro Forçado
-st.set_page_config(page_title="Sistema Pro - Licitações", layout="wide", initial_sidebar_state="expanded")
+# Configuração estável e limpa do painel
+st.set_page_config(page_title="Sistema Pro - Licitações", layout="wide")
 
-# --- DESIGN PREMIUM DARK MODE COMPLETO (CSS) ---
-st.markdown("""
-    <style>
-    /* Fundo Geral do Aplicativo */
-    .stApp { background-color: #0F172A !important; font-family: 'Segoe UI', Roboto, sans-serif; }
-    
-    /* Customização Forçada da Barra Lateral (Sidebar) */
-    section[data-testid="stSidebar"] { background-color: #1E293B !important; padding-top: 20px; border-right: 1px solid #334155 !important; }
-    
-    /* CORREÇÃO DO TEXTO INVISÍVEL NO MENU LATERAL */
-    section[data-testid="stSidebar"] div[role="radiogroup"] label {
-        color: #F8FAFC !important;
-        font-weight: 600 !important;
-        font-size: 15px !important;
-        margin-bottom: 5px !important;
-    }
-    section[data-testid="stSidebar"] .stMarkdown p, section[data-testid="stSidebar"] span, section[data-testid="stSidebar"] h3 { 
-        color: #F8FAFC !important; 
-        font-weight: 600 !important; 
-    }
-    
-    /* Títulos e Textos Principais */
-    .header-painel { font-size: 28px !important; font-weight: 700 !important; color: #F8FAFC !important; margin-top: 10px !important; }
-    .sub-painel { font-size: 14px !important; color: #94A3B8 !important; margin-bottom: 25px !important; }
-    
-    /* Caixa de Identidade */
-    .logo-box { background-color: #EF4444; color: white !important; padding: 12px; border-radius: 8px; font-weight: 700; font-size: 18px; text-align: center; margin-bottom: 30px; }
-    
-    /* Blocos/Containers de Conteúdo */
-    div[data-testid="stForm"], .stDropzone, div.block-container > div { background-color: #1E293B !important; border: 1px solid #334155 !important; border-radius: 12px !important; padding: 25px !important; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3) !important; margin-bottom: 25px !important; }
-    label, p, h4 { color: #F1F5F9 !important; }
-    .stDropzone { border: 2px dashed #475569 !important; background-color: #0F172A !important; }
-    
-    /* Botões Grandes e Modernos */
-    div.stButton > button { background-color: #2563EB !important; color: #FFFFFF !important; font-weight: 600 !important; border-radius: 8px !important; width: 100% !important; height: 48px; border: none !important; }
-    div.stButton > button:hover { background-color: #1D4ED8 !important; }
-    div[data-testid="stDataFrame"] { border-radius: 8px !important; border: 1px solid #334155 !important; background-color: #1E293B !important; }
-    </style>
-""", unsafe_allow_html=True)
-
+# Inicialização e carregamento seguro dos bancos de dados
 ARQUIVO_CERTIDOES = "dados_certidoes.csv"
 ARQUIVO_CONTRATOS = "dados_contratos.csv"
 
@@ -67,7 +28,7 @@ if 'certidoes' not in st.session_state:
 if 'contratos' not in st.session_state:
     st.session_state.contratos = carregar_dados(ARQUIVO_CONTRATOS, ["Cidade", "Contrato", "Modalidade", "Status"])
 
-# --- FUNÇÕES DE AUXÍLIO ---
+# --- FUNÇÕES AUXILIARES ---
 def limpar_texto(t):
     return re.sub(r'[^a-zA-Z0-9]', '', str(t).upper().strip())
 
@@ -85,80 +46,45 @@ def extrair_dados_pdf(texto):
     conta_achada = contas if contas else "Nao_Encontrada"
     return nome, valor_achado, conta_achada
 
-def processar_auditoria_excel(excel_file, aba_selecionada, dados_extraidos_pdf):
-    try:
-        df_excel = pd.read_excel(excel_file, sheet_name=aba_selecionada)
-        colunas_necessarias = ['Nome', 'Conta', 'Valor']
-        if not all(col in df_excel.columns for col in colunas_necessarias):
-            st.error(f"Atenção: A aba '{aba_selecionada}' precisa ter exatamente as colunas: 'Nome', 'Conta' e 'Valor'")
-            return
-        
-        relatorio_final = []
-        for _, linha_ex in df_excel.iterrows():
-            ex_nome = str(linha_ex['Nome']).strip()
-            ex_conta = str(linha_ex['Conta']).strip()
-            try:
-                ex_valor = f"{float(linha_ex['Valor']):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            except:
-                ex_valor = "0,00"
-            
-            status = "🔴 Não Encontrado"
-            for pdf_item in dados_extraidos_pdf:
-                nome_bate = limpar_texto(ex_nome) in limpar_texto(pdf_item["Nome_PDF"]) or limpar_texto(pdf_item["Nome_PDF"]) in limpar_texto(ex_nome)
-                valor_bate = limpar_texto(ex_valor) == limpar_texto(pdf_item["Valor_PDF"])
-                
-                if nome_bate and valor_bate:
-                    status = "🟢 Confirmado"
-                    break
-                elif nome_bate and not valor_bate:
-                    status = "🟡 Valor Divergente"
-                    break
-            
-            relatorio_final.append({
-                "Resultado": status,
-                "Nome Planilha": ex_nome,
-                "Conta Planilha": ex_conta,
-                "Valor Planilha": f"R$ {ex_valor}"
-            })
-        st.dataframe(pd.DataFrame(relatorio_final), use_container_width=True)
-    except:
-        st.error("Erro ao cruzar os dados da planilha.")
-
-# --- CONSTRUÇÃO DA SIDEBAR ---
+# --- BARRA LATERAL NATIVA (SIDEBAR) ---
 with st.sidebar:
-    st.markdown('<div class="logo-box">💼 Sistema Pro</div>', unsafe_allow_html=True)
-    st.markdown("### Módulos de Operação")
-    opcao_menu = st.radio(label="Navegação", options=["Separador e Conferência", "Controle de Certidões", "Cidades Ganhas (Contratos)"], label_visibility="collapsed")
+    st.title("💼 Sistema Pro")
+    st.write("Escolha o módulo de operação:")
+    opcao_menu = st.sidebar.radio(
+        "Navegação", 
+        ["Separador e Conferência", "Controle de Certidões", "Cidades Ganhas (Contratos)"]
+    )
     st.write("---")
-    st.caption("Versão Corporativa 3.2 • Premium Dark")
+    st.caption("Versão 3.5 • Estável")
 
-# --- LÓGICA DO CONTEÚDO PRINCIPAL ---
+# --- CONTEÚDO PRINCIPAL ---
 
+# PÁGINA 1: SEPARADOR E CONFERÊNCIA COM SELEÇÃO DE ABAS
 if opcao_menu == "Separador e Conferência":
-    st.markdown('<div class="header-painel">📄 Separador & Conferência Inteligente</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-painel">Envie os PDFs dos comprovantes e selecione a aba específica do seu Excel para realizar a conferência.</div>', unsafe_allow_html=True)
+    st.title("📄 Separador & Conferência Inteligente")
+    st.write("Envie os PDFs e selecione a aba específica do seu Excel para realizar a auditoria automática.")
     
     col_up1, col_up2 = st.columns(2)
     with col_up1:
-        st.markdown("#### 📤 1. Arquivos de Comprovantes (PDF)")
-        uploaded_files = st.file_uploader("Upload PDFs", type=["pdf"], accept_multiple_files=True, label_visibility="collapsed")
+        st.subheader("📤 1. Comprovantes (PDF)")
+        uploaded_files = st.file_uploader("Selecione os arquivos PDF", type=["pdf"], accept_multiple_files=True)
     with col_up2:
-        st.markdown("#### 📊 2. Planilha de Conferência (Excel)")
-        excel_file = st.file_uploader("Upload Excel", type=["xlsx"], accept_multiple_files=False, label_visibility="collapsed")
+        st.subheader("📊 2. Planilha (Excel)")
+        excel_file = st.file_uploader("Selecione a planilha .xlsx", type=["xlsx"], accept_multiple_files=False)
 
     aba_selecionada = None
     if excel_file is not None:
         try:
             xl = pd.ExcelFile(excel_file)
             abas_disponiveis = xl.sheet_names
-            st.markdown("#### 📑 3. Selecione a Aba da Planilha para Conferir")
-            aba_selecionada = st.selectbox("Escolha uma aba para analisar:", abas_disponiveis)
+            st.subheader("📑 3. Escolha a Aba da Planilha")
+            aba_selecionada = st.selectbox("Selecione a aba desejada para conferência:", abas_disponiveis)
         except:
             st.error("Erro ao carregar abas do arquivo Excel.")
 
     if uploaded_files:
         st.write("")
-        if st.button("🚀 Processar, Separar e Conferir com Aba Selecionada"):
+        if st.button("🚀 Processar, Separar e Conferir"):
             import zipfile
             zip_buffer = io.BytesIO()
             nomes_contagem = {}
@@ -191,9 +117,90 @@ if opcao_menu == "Separador e Conferência":
                             zip_file.writestr(f"{nome_final}.pdf", pag_buf.read())
                     barra.progress((idx + 1) / total)
             
-            st.success("🎉 Separação dos PDFs concluída!")
-            st.download_button("📥 Baixar Comprovantes Separados (.ZIP)", zip_buffer.getvalue(), "comprovantes.zip", "application/zip")
+            st.success("🎉 Separação concluída com sucesso!")
+            st.download_button("📥 Baixar Arquivos Organizados (.ZIP)", zip_buffer.getvalue(), "comprovantes.zip", "application/zip")
             
             if excel_file is not None and aba_selecionada is not None:
                 st.write("---")
-                st.markdown(f"### 📊 Relatório de Auditoria — Aba: `{aba_selecionada}`")
+                st.subheader(f"📊 Relatório de Auditoria — Aba: {aba_selecionada}")
+                try:
+                    df_excel = pd.read_excel(excel_file, sheet_name=aba_selecionada)
+                    colunas_necessarias = ['Nome', 'Conta', 'Valor']
+                    if not all(col in df_excel.columns for col in colunas_necessarias):
+                        st.error(f"Erro: A aba '{aba_selecionada}' precisa ter as colunas: 'Nome', 'Conta' e 'Valor'")
+                    else:
+                        relatorio_final = []
+                        for _, linha_ex in df_excel.iterrows():
+                            ex_nome = str(linha_ex['Nome']).strip()
+                            ex_conta = str(linha_ex['Conta']).strip()
+                            try:
+                                ex_valor = f"{float(linha_ex['Valor']):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                            except:
+                                ex_valor = "0,00"
+                            
+                            status = "🔴 Não Encontrado"
+                            for pdf_item in dados_extraidos_pdf:
+                                nome_bate = limpar_texto(ex_nome) in limpar_texto(pdf_item["Nome_PDF"]) or limpar_texto(pdf_item["Nome_PDF"]) in limpar_texto(ex_nome)
+                                valor_bate = limpar_texto(ex_valor) == limpar_texto(pdf_item["Valor_PDF"])
+                                
+                                if nome_bate and valor_bate:
+                                    status = "🟢 Confirmado"
+                                    break
+                                elif nome_bate and not valor_bate:
+                                    status = "🟡 Valor Divergente"
+                                    break
+                            
+                            relatorio_final.append({
+                                "Resultado": status,
+                                "Nome Planilha": ex_nome,
+                                "Conta Planilha": ex_conta,
+                                "Valor Planilha": f"R$ {ex_valor}"
+                            })
+                        st.dataframe(pd.DataFrame(relatorio_final), use_container_width=True)
+                except:
+                    st.error("Erro ao processar e cruzar os dados com a planilha.")
+
+# PÁGINA 2: CERTIDÕES
+elif opcao_menu == "Controle de Certidões":
+    st.title("📋 Painel de Controle de Certidões")
+    
+    with st.form("form_certidao", clear_on_submit=True):
+        st.write("### ➕ Cadastrar Nova Certidão")
+        nome_cert = st.text_input("Nome / Órgão Emissor")
+        link_cert = st.text_input("URL / Link Direto de Acesso")
+        venc_cert = st.date_input("Data de Vencimento Oficial", datetime.today().date())
+        botao_cert = st.form_submit_button("Salvar Certidão")
+        
+    if botao_cert and nome_cert:
+        nova_cert = pd.DataFrame([{"Nome": nome_cert, "Link": link_cert, "Vencimento": venc_cert}])
+        st.session_state.certidoes = pd.concat([st.session_state.certidoes, nova_cert], ignore_index=True)
+        salvar_dados(st.session_state.certidoes, ARQUIVO_CERTIDOES)
+        st.success("Certidão salva com sucesso!")
+        st.rerun()
+        
+    st.write("---")
+    st.write("### 🔍 Certidões Monitoradas")
+    df_cert = st.session_state.certidoes
+    if not df_cert.empty:
+        lista_exibicao = []
+        hoje = datetime.today().date()
+        for idx, row in df_cert.iterrows():
+            vencimento = row["Vencimento"]
+            status = "🔴 VENCIDA" if vencimento < hoje else (f"🟡 ATENÇÃO ({(vencimento - hoje).days} dias)" if (vencimento - hoje).days <= 10 else "🟢 EM DIA")
+            lista_exibicao.append({"Status": status, "Nome da Certidão": row["Nome"], "Link de Acesso": row["Link"], "Data de Vencimento": vencimento.strftime("%d/%m/%Y")})
+        st.dataframe(pd.DataFrame(lista_exibicao), use_container_width=True)
+        
+        if st.button("⚠️ Apagar Todas as Certidões"):
+            st.session_state.certidoes = pd.DataFrame(columns=["Nome", "Link", "Vencimento"])
+            if os.path.exists(ARQUIVO_CERTIDOES): os.remove(ARQUIVO_CERTIDOES)
+            st.rerun()
+    else:
+        st.info("Nenhuma certidão cadastrada.")
+
+# PÁGINA 3: CIDADES GANHAS
+else:
+    st.title("🏙️ Monitoramento de Cidades Ganhas & Atas")
+    
+    with st.form("form_contrato", clear_on_submit=True):
+        st.write("### ➕ Registrar Novo Contrato / Localidade")
+        cidade = st.text_input("Município / Estado / Órgão Público")
