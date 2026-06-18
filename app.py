@@ -6,10 +6,6 @@ import re
 import os
 import datetime
 
-# Importações para o leitor óptico de imagem (OCR) funcionar em PDFs bloqueados
-from pdf2image import convert_from_bytes
-import pytesseract
-
 # Configuração estável do painel principal
 st.set_page_config(page_title="Sistema Pro - Licitações", layout="wide")
 
@@ -50,7 +46,6 @@ def buscar_nome_no_texto(texto):
         resultado = re.search(padrao, texto, re.IGNORECASE)
         if resultado:
             nome = resultado.group(1).strip()
-            # Limpa caracteres proibidos pelo Windows
             nome_limpo = re.sub(r'[\\/*?:"<>|]', "", nome)
             return nome_limpo[:50].strip().upper()
     return None
@@ -64,7 +59,7 @@ with st.sidebar:
         ["Separador de Comprovantes", "Controle de Certidões", "Cidades Ganhas (Contratos)"]
     )
     st.write("---")
-    st.caption("Versão 5.0 • Scanner OCR Ativo")
+    st.caption("Versão 5.1 • Alinhamento Corrigido")
 
 # --- CONTEÚDO DINÂMICO ---
 
@@ -90,27 +85,23 @@ if opcao_menu == "Separador de Comprovantes":
                     barra_progresso = st.progress(0)
                     
                     for i in range(total_paginas):
-                        # Passo 1: Tenta ler texto digital direto (Bradesco, Itaú...)
                         pagina_texto = pdf_leitor_texto.pages[i].extract_text()
                         nome_favorecido = buscar_nome_no_texto(pagina_texto)
                         
-                        # Passo 2: Se o PDF for uma imagem ou estiver bloqueado, roda o Scanner de Foto (OCR)
                         if not nome_favorecido:
                             try:
-                                # Transforma a folha bloqueada em uma imagem nítida na memória
+                                from pdf2image import convert_from_bytes
+                                import pytesseract
                                 imagens = convert_from_bytes(pdf_bytes, first_page=i+1, last_page=i+1)
                                 if imagens:
-                                    # O robô escaneia visualmente as letras da foto
                                     texto_da_imagem = pytesseract.image_to_string(imagens, lang='por')
                                     nome_favorecido = buscar_nome_no_texto(texto_da_imagem)
                             except:
                                 pass
                         
-                        # Passo 3: Segurança caso o documento esteja rasurado ou ilegível
                         if not nome_favorecido:
                             nome_favorecido = f"FAVORECIDO_BLOQUEADO_PAG_{i+1}"
                         
-                        # Evita arquivos duplicados com o mesmo nome na pasta
                         if nome_favorecido in nomes_contagem:
                             nomes_contagem[nome_favorecido] += 1
                             nome_arquivo = f"{nome_favorecido} {nomes_contagem[nome_favorecido]}.pdf"
@@ -118,7 +109,6 @@ if opcao_menu == "Separador de Comprovantes":
                             nomes_contagem[nome_favorecido] = 1
                             nome_arquivo = f"{nome_favorecido}.pdf"
                         
-                        # Recorta e monta a página isolada
                         escritor = PdfWriter()
                         escritor.add_page(pdf_recortador.pages[i])
                         
@@ -210,3 +200,8 @@ else:
         st.dataframe(pd.DataFrame(lista_contratos_visuais), use_container_width=True)
         
         if st.button("⚠️ Apagar Lista de Contratos"):
+            st.session_state.contratos = pd.DataFrame(columns=["Cidade", "Contrato", "Modalidade", "Status"])
+            if os.path.exists(ARQUIVO_CONTRATOS): os.remove(ARQUIVO_CONTRATOS)
+            st.rerun()
+    else:
+        st.info("Nenhuma praça registrada para acompanhamento.")
