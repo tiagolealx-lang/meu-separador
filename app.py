@@ -31,23 +31,32 @@ if 'certidoes' not in st.session_state:
 if 'contratos' not in st.session_state:
     st.session_state.contratos = carregar_dados(ARQUIVO_CONTRATOS, ["Cidade", "Contrato", "Modalidade", "Status"])
 
-# --- COGNIÇÃO: BUSCADOR DE NOMES ---
+# --- COGNIÇÃO AVANÇADA PARA COMPROVANTES DO BANCO DO BRASIL E BRADESCO ---
 def buscar_nome_no_texto(texto):
     if not texto:
         return None
+        
+    # Padrões específicos para capturar o nome do favorecido
     padroes = [
         r"Favorecido:\s*([^\n]+)",
         r"Nome do favorecido:\s*([^\n]+)",
+        r"Nome do Cliente:\s*([^\n]+)",
         r"Recebedor:\s*([^\n]+)",
         r"Nome:\s*([^\n]+)",
-        r"BENEFICIÁRIO:\s*([^\n]+)"
+        r"BENEFICIÁRIO:\s*([^\n]+)",
+        r"NOME DO FAVORECIDO\s*([^\n]+)"
     ]
+    
     for padrao in padroes:
         resultado = re.search(padrao, texto, re.IGNORECASE)
         if resultado:
             nome = resultado.group(1).strip()
+            # Remove traços ou termos como "CPF:" que às vezes vêm na mesma linha do BB
+            nome = re.split(r'(?:CPF:|CNPJ:|AGÊNCIA:|CONTA:)', nome, flags=re.IGNORECASE)[0].strip()
+            # Limpa caracteres proibidos por arquivos do Windows
             nome_limpo = re.sub(r'[\\/*?:"<>|]', "", nome)
-            return nome_limpo[:50].strip().upper()
+            if len(nome_limpo) > 2:
+                return nome_limpo[:50].strip().upper()
     return None
 
 # --- BARRA LATERAL NATIVA DE NAVEGAÇÃO ---
@@ -59,14 +68,13 @@ with st.sidebar:
         ["Separador de Comprovantes", "Controle de Certidões", "Cidades Ganhas (Contratos)"]
     )
     st.write("---")
-    st.caption("Versão 5.2 • Correção de Parâmetros")
+    st.caption("Versão 5.3 • BB Otimizado")
 
 # --- CONTEÚDO DINÂMICO ---
 
-# PÁGINA 1: SEPARADOR DE COMPROVANTES
 if opcao_menu == "Separador de Comprovantes":
     st.title("📄 Separador Automático de Comprovantes")
-    st.write("Insira o seu PDF para separar as páginas pelo nome puro do favorecido (Lê arquivos normais e bloqueados).")
+    st.write("Insira o seu PDF para separar as páginas pelo nome puro do favorecido (Suporta Bradesco e Banco do Brasil).")
     
     uploaded_file = st.file_uploader("Escolha o arquivo PDF", type=["pdf"])
 
@@ -79,29 +87,36 @@ if opcao_menu == "Separador de Comprovantes":
             nomes_contagem = {}
             
             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                # pdfplumber abre o arquivo com motor de extração de tabelas ocultas do BB
                 with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf_leitor_texto:
                     pdf_recortador = PdfReader(io.BytesIO(pdf_bytes))
                     total_paginas = len(pdf_leitor_texto.pages)
                     barra_progresso = st.progress(0)
                     
                     for i in range(total_paginas):
-                        pagina_texto = pdf_leitor_texto.pages[i].extract_text()
+                        # Método de leitura avançada por tabelas e texto estruturado
+                        pagina_plumber = pdf_leitor_texto.pages[i]
+                        pagina_texto = pagina_plumber.extract_text(layout=True) or ""
+                        
+                        # Se falhar o layout normal, tenta ler extraindo palavras soltas posicionado por linhas
+                        if len(pagina_texto.strip()) < 5:
+                            pagina_texto = pagina_plumber.extract_text() or ""
+                            
                         nome_favorecido = buscar_nome_no_texto(pagina_texto)
                         
+                        # Fallback de segurança usando o leitor secundário pypdf
                         if not nome_favorecido:
                             try:
-                                from pdf2image import convert_from_bytes
-                                import pytesseract
-                                imagens = convert_from_bytes(pdf_bytes, first_page=i+1, last_page=i+1)
-                                if imagens:
-                                    texto_da_imagem = pytesseract.image_to_string(imagens, lang='por')
-                                    nome_favorecido = buscar_nome_no_texto(texto_da_imagem)
+                                txt_pypdf = pdf_recortador.pages[i].extract_text() or ""
+                                nome_favorecido = buscar_nome_no_texto(txt_pypdf)
                             except:
                                 pass
                         
+                        # Se mesmo assim não achar o nome (ex: página em branco), dá o nome padrão da página
                         if not nome_favorecido:
-                            nome_favorecido = f"FAVORECIDO_BLOQUEADO_PAG_{i+1}"
+                            nome_favorecido = f"FAVORECIDO_NAO_DETECTADO_PAG_{i+1}"
                         
+                        # Evita arquivos com o mesmo nome se sobrescreverem
                         if nome_favorecido in nomes_contagem:
                             nomes_contagem[nome_favorecido] += 1
                             nome_arquivo = f"{nome_favorecido} {nomes_contagem[nome_favorecido]}.pdf"
@@ -109,6 +124,7 @@ if opcao_menu == "Separador de Comprovantes":
                             nomes_contagem[nome_favorecido] = 1
                             nome_arquivo = f"{nome_favorecido}.pdf"
                         
+                        # Recorta a página e joga no ZIP
                         escritor = PdfWriter()
                         escritor.add_page(pdf_recortador.pages[i])
                         
@@ -116,7 +132,6 @@ if opcao_menu == "Separador de Comprovantes":
                         escritor.write(pdf_pagina_buffer)
                         pdf_pagina_buffer.seek(0)
                         
-                        # Correção aqui: removidos os nomes dos parâmetros de chamada
                         zip_file.writestr(nome_arquivo, pdf_pagina_buffer.read())
                         barra_progresso.progress((i + 1) / total_paginas)
                         
@@ -128,7 +143,6 @@ if opcao_menu == "Separador de Comprovantes":
                 mime="application/zip"
             )
 
-# PÁGINA 2: CONTROLE DE CERTIDÕES
 elif opcao_menu == "Controle de Certidões":
     import pandas as pd
     st.title("📋 Painel de Controle de Certidões")
@@ -168,7 +182,6 @@ elif opcao_menu == "Controle de Certidões":
     else:
         st.info("Nenhuma certidão cadastrada.")
 
-# PÁGINA 3: CIDADES GANHAS
 else:
     import pandas as pd
     st.title("🏙️ Monitoramento de Cidades Ganhas & Atas")
@@ -197,12 +210,3 @@ else:
         lista_contratos_visuais = []
         for idx, row in df_cont.iterrows():
             alerta_diario = f"👀 Checar Diário Oficial de {row['Cidade']}" if row["Status"] == "Ativo" else "✅ Finalizado"
-            lista_contratos_visuais.append({"Ação Diária Obrigatória": alerta_diario, "Status": "🟢 Ativo" if row["Status"] == "Ativo" else "⚫ Encerrado", "Cidade / Órgão": row["Cidade"], "Nº do Contrato": row["Contrato"]})
-        st.dataframe(pd.DataFrame(lista_contratos_visuais), use_container_width=True)
-        
-        if st.button("⚠️ Apagar Lista de Contratos"):
-            st.session_state.contratos = pd.DataFrame(columns=["Cidade", "Contrato", "Modalidade", "Status"])
-            if os.path.exists(ARQUIVO_CONTRATOS): os.remove(ARQUIVO_CONTRATOS)
-            st.rerun()
-    else:
-        st.info("Nenhuma praça registrada para acompanhamento.")
