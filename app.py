@@ -28,16 +28,40 @@ if 'certidoes' not in st.session_state:
 if 'contratos' not in st.session_state:
     st.session_state.contratos = carregar_dados(ARQUIVO_CONTRATOS, ["Cidade", "Contrato", "Modalidade", "Status"])
 
-# --- FUNÇÃO DE EXTRAÇÃO DE NOME ---
+# --- FUNÇÃO AVANÇADA DE EXTRAÇÃO DE NOME ---
 def extrair_nome(texto):
-    nome = "Favorecido_Nao_Encontrado"
-    padroes = [r"Favorecido:\s*([^\n]+)", r"Nome:\s*([^\n]+)", r"Recebedor:\s*([^\n]+)", r"Nome do Favorecido:\s*([^\n]+)"]
+    if not texto or not texto.strip():
+        return "Comprovante_Sem_Texto"
+        
+    # 1. Tenta buscar pelas palavras-chave tradicionais e variações comuns de bancos
+    padroes = [
+        r"(?:Favorecido|Nome do Favorecido|Recebedor|Beneficiário|Nome|Destinatário|Pessoa):\s*([^\n]+)",
+        r"(?:Para|Pagar para|Crédito para):\s*([^\n]+)"
+    ]
+    
     for p in padroes:
         res = re.search(p, texto, re.IGNORECASE)
         if res:
-            nome = re.sub(r'[\\/*?:"<>|]', "", res.group(1).strip())[:40]
-            break
-    return nome
+            nome = res.group(1).strip()
+            nome_limpo = re.sub(r'[\\/*?:"<>|]', "", nome)
+            if len(nome_limpo) > 2:
+                return nome_limpo[:40].strip()
+                
+    # 2. Se não achou palavra-chave, pega as primeiras linhas que pareçam um nome (letras maiúsculas)
+    linhas = [l.strip() for l in texto.split('\n') if l.strip()]
+    for linha in linhas[:5]:  # Analisa as primeiras 5 linhas do documento
+        # Se a linha tiver palavras grandes em maiúsculo (comum em nomes de pessoas/empresas no topo)
+        if re.match(r'^[A-ZÁÉÍÓÚÂÊÔÀ🎨 ]+$', linha) and len(linha) > 5:
+            nome_limpo = re.sub(r'[\\/*?:"<>|]', "", linha)
+            return nome_limpo[:40].strip()
+            
+    # 3. Última tentativa: pega a segunda ou terceira linha do PDF (onde os bancos costumam colocar o cabeçalho)
+    if len(linhas) > 1:
+        nome_linha = linhas[1] if len(linhas) > 1 else linhas[0]
+        nome_limpo = re.sub(r'[\\/*?:"<>|]', "", nome_linha)
+        return nome_limpo[:40].strip()
+        
+    return "Favorecido_Nao_Detectado"
 
 # --- CONSTRUÇÃO DO MENU LATERAL ---
 with st.sidebar:
@@ -49,7 +73,7 @@ with st.sidebar:
         label_visibility="collapsed"
     )
     st.write("---")
-    st.caption("Versão 4.1 • Direta e Estável")
+    st.caption("Versão 4.2 • Correção de Leitura")
 
 # --- CONTEÚDO DA PÁGINA 1: APENAS SEPARADOR ---
 if opcao_menu == "Separador de Comprovantes":
