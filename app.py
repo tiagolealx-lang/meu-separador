@@ -4,7 +4,7 @@ from pypdf import PdfWriter, PdfReader
 import io
 import re
 import os
-import datetime  # Correção do erro: importando a biblioteca de data corretamente
+import datetime
 
 # Configuração estável do painel principal
 st.set_page_config(page_title="Sistema Pro - Licitações", layout="wide")
@@ -59,9 +59,11 @@ with st.sidebar:
         ["Separador de Comprovantes", "Controle de Certidões", "Cidades Ganhas (Contratos)"]
     )
     st.write("---")
-    st.caption("Versão 4.6 • Correção do Calendário")
+    st.caption("Versão 4.7 • Títulos Dinâmicos")
 
-# --- PÁGINA 1: SEPARADOR DE COMPROVANTES ---
+# --- CONTEÚDO DINÂMICO CONFORME A ABA ---
+
+# PÁGINA 1: SEPARADOR DE COMPROVANTES
 if opcao_menu == "Separador de Comprovantes":
     st.title("📄 Separador Automático de Comprovantes")
     st.write("Insira o seu PDF para separar as páginas pelo nome puro do favorecido (Suporta Bradesco e Banco do Brasil).")
@@ -83,11 +85,9 @@ if opcao_menu == "Separador de Comprovantes":
                     barra_progresso = st.progress(0)
                     
                     for i in range(total_paginas):
-                        # Método 1: Texto Direto (Bradesco)
                         pagina_texto = pdf_leitor_texto.pages[i].extract_text()
                         nome_favorecido = buscar_nome_no_texto(pagina_texto)
                         
-                        # Método 2: Imagem/OCR (Banco do Brasil)
                         if not nome_favorecido:
                             try:
                                 from pdf2image import convert_from_bytes
@@ -127,10 +127,11 @@ if opcao_menu == "Separador de Comprovantes":
                 mime="application/zip"
             )
 
-# --- PÁGINA 2: CONTROLE DE CERTIDÕES ---
+# PÁGINA 2: CONTROLE DE CERTIDÕES
 elif opcao_menu == "Controle de Certidões":
     import pandas as pd
     st.title("📋 Painel de Controle de Certidões")
+    st.write("Monitore os prazos de validade e guarde os links das certidões obrigatórias.")
     
     st.write("### ➕ Cadastrar Nova Certidão")
     nome_cert = st.text_input("Nome / Órgão Emissor")
@@ -166,10 +167,11 @@ elif opcao_menu == "Controle de Certidões":
     else:
         st.info("Nenhuma certidão cadastrada.")
 
-# --- PAGINA 3: CIDADES GANHAS ---
+# PÁGINA 3: CIDADES GANHAS
 else:
     import pandas as pd
     st.title("🏙️ Monitoramento de Cidades Ganhas & Atas")
+    st.write("Lembrete diário para checar os Diários Oficiais das praças arrematadas.")
     
     st.write("### ➕ Registrar Novo Contrato / Localidade")
     cidade = st.text_input("Município / Estado / Órgão Público")
