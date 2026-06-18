@@ -55,7 +55,7 @@ with st.sidebar:
         ["Separador e Conferência", "Controle de Certidões", "Cidades Ganhas (Contratos)"]
     )
     st.write("---")
-    st.caption("Versão 3.5 • Estável")
+    st.caption("Versão 3.6 • Final Estável")
 
 # --- CONTEÚDO PRINCIPAL ---
 
