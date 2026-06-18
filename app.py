@@ -7,46 +7,91 @@ import os
 import pandas as pd
 from datetime import datetime
 
-# Configuração da página - Tema Escuro Elegante
-st.set_page_config(page_title="Painel de Licitações Pro", layout="wide")
+# 1. CONFIGURAÇÃO DA PÁGINA E DO TEMA CORPORATIVO CLARO
+st.set_page_config(
+    page_title="Sistema Pro - Gestão Integrada", 
+    layout="wide", 
+    initial_sidebar_state="expanded"
+)
 
-# Estilização CSS para transformar o design do app
+# Estilização CSS Avançada para forçar um ambiente claro, limpo e executivo
 st.markdown("""
     <style>
-    /* Remover espaços exagerados no topo */
-    .block-container { padding-top: 2rem; padding-bottom: 2rem; }
-    
-    /* Customização dos Títulos */
-    .main-title { font-size: 32px; font-weight: 800; color: #1E90FF; margin-bottom: 5px; }
-    .subtitle { font-size: 16px; color: #888888; margin-bottom: 25px; }
-    
-    /* Cards de Estatísticas */
-    .metric-card {
-        background-color: #1E1E24;
-        padding: 15px;
-        border-radius: 10px;
-        border-left: 5px solid #1E90FF;
-        text-align: center;
+    /* Forçar fundo claro e fontes profissionais */
+    .stApp {
+        background-color: #F8F9FA;
+        color: #212529;
     }
-    
-    /* Estilo dos Botões e Inputs */
+    /* Estilização dos blocos e caixas (Cards) */
+    .card-indicador {
+        background-color: #FFFFFF;
+        padding: 20px;
+        border-radius: 10px;
+        border-left: 5px solid #0056B3;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.05);
+        margin-bottom: 15px;
+    }
+    .card-indicador h3 {
+        margin: 0;
+        font-size: 14px;
+        color: #6C757D;
+        text-transform: uppercase;
+    }
+    .card-indicador p {
+        margin: 5px 0 0 0;
+        font-size: 28px;
+        font-weight: bold;
+        color: #1C1C1E;
+    }
+    /* Alinhamento do título principal para evitar cortes */
+    .header-painel {
+        padding-top: 5px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #E9ECEF;
+        margin-bottom: 25px;
+    }
+    .header-painel h1 {
+        color: #002D62;
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+    .header-painel p {
+        color: #495057;
+        font-size: 14px;
+        margin: 0;
+    }
+    /* Customização de Botões */
     div.stButton > button:first-child {
-        background-color: #1E90FF;
+        background-color: #0056B3;
         color: white;
         border-radius: 6px;
-        font-weight: bold;
-        width: 100%;
         border: none;
-        padding: 10px;
+        padding: 10px 24px;
+        font-weight: 600;
+        transition: 0.3s;
     }
-    div.stButton > button:first-child:hover { background-color: #0077e6; }
+    div.stButton > button:first-child:hover {
+        background-color: #004085;
+        color: white;
+    }
+    /* Customização do Menu Lateral */
+    section[data-testid="stSidebar"] {
+        background-color: #FFFFFF !important;
+        border-right: 1px solid #E9ECEF;
+    }
+    section[data-testid="stSidebar"] h1 {
+        color: #002D62 !important;
+        font-size: 20px !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# Arquivos de dados salvos
+# Nomes dos arquivos de persistência de dados
 ARQUIVO_CERTIDOES = "dados_certidoes.csv"
 ARQUIVO_CONTRATOS = "dados_contratos.csv"
 
+# Funções auxiliares para leitura e escrita dos bancos de dados locais (CSV)
 def carregar_dados(arquivo, colunas):
     if os.path.exists(arquivo):
         df = pd.read_csv(arquivo)
@@ -58,30 +103,42 @@ def carregar_dados(arquivo, colunas):
 def salvar_dados(df, arquivo):
     df.to_csv(arquivo, index=False)
 
+# Inicialização segura dos estados das tabelas
 if 'certidoes' not in st.session_state:
     st.session_state.certidoes = carregar_dados(ARQUIVO_CERTIDOES, ["Nome", "Link", "Vencimento"])
 
 if 'contratos' not in st.session_state:
     st.session_state.contratos = carregar_dados(ARQUIVO_CONTRATOS, ["Cidade", "Contrato", "Modalidade", "Status"])
 
-# --- SIDEBAR (MENU LATERAL) ---
+# --- MENU LATERAL DE NAVEGAÇÃO PRO ---
 with st.sidebar:
     if os.path.exists("logo.png"):
         st.image("logo.png", use_container_width=True)
-    st.title("💼 Sistema Pro")
-    st.write("Escolha o módulo de operação:")
-    opcao_menu = st.sidebar.selectbox(
-        "Navegação", 
-        ["Separador de Comprovantes", "Controle de Certidões", "Cidades Ganhas (Contratos)"]
-    )
-
-# --- MODULO 1: SEPARADOR DE COMPROVANTES ---
-if opcao_menu == "Separador de Comprovantes":
-    st.markdown('<p class="main-title">📄 Separador de Comprovantes</p>', unsafe_allow_html=True)
-    st.markdown('<p class="subtitle">Divisão automática de lotes de PDFs pelo nome do favorecido</p>', unsafe_allow_html=True)
-    st.write("---")
+    else:
+        st.markdown("<h2 style='color: #0056B3; font-weight: bold;'>💼 Sistema Pro</h2>", unsafe_allow_html=True)
     
-    uploaded_files = st.file_uploader("Arraste ou escolha os arquivos PDF aqui", type=["pdf"], accept_multiple_files=True)
+    st.write("---")
+    st.markdown("### 🗺️ Módulos de Operação")
+    opcao_menu = st.selectbox(
+        "Selecione a ferramenta desejada:", 
+        ["Separador de Comprovantes", "Controle de Certidões", "Cidades Ganhas & Contratos"]
+    )
+    st.write("---")
+    st.markdown("<p style='font-size: 11px; color: #9A9A9A; text-align: center;'>Versão Corporate 2026</p>", unsafe_allow_html=True)
+
+# --- MÓDULO 1: SEPARADOR DE COMPROVANTES ---
+if opcao_menu == "Separador de Comprovantes":
+    st.markdown("""
+        <div class='header-painel'>
+            <h1>📄 Separador Inteligente de Comprovantes</h1>
+            <p>Divisão otimizada de lotes de PDFs integrados através da extração nominal automatizada do favorecido.</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Organização em containers brancos limpos
+    with st.container():
+        st.markdown("### 📤 Upload de Arquivos")
+        uploaded_files = st.file_uploader("Arraste seus PDFs consolidados ou clique para selecionar múltiplos arquivos:", type=["pdf"], accept_multiple_files=True)
 
     def extrair_nome(texto):
         padroes = [r"Favorecido:\s*([^\n]+)", r"Nome:\s*([^\n]+)", r"Recebedor:\s*([^\n]+)"]
@@ -92,7 +149,8 @@ if opcao_menu == "Separador de Comprovantes":
         return "Favorecido_Nao_Encontrado"
 
     if uploaded_files:
-        if st.button("🚀 Iniciar Processamento"):
+        st.write("---")
+        if st.button("🚀 Iniciar Processamento dos Documentos"):
             import zipfile
             zip_buffer = io.BytesIO()
             nomes_contagem = {}
@@ -102,7 +160,7 @@ if opcao_menu == "Separador de Comprovantes":
             
             with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
                 for idx, uploaded_file in enumerate(uploaded_files):
-                    status_texto.text(f"Lendo arquivo {idx+1} de {total_arquivos}...")
+                    status_texto.text(f"Analisando estrutura do documento {idx+1} de {total_arquivos}...")
                     pdf_bytes = uploaded_file.read()
                     with pdfplumber.open(io.BytesIO(pdf_bytes)) as leitor_txt:
                         pdf_recortador = PdfReader(io.BytesIO(pdf_bytes))
@@ -124,105 +182,70 @@ if opcao_menu == "Separador de Comprovantes":
                     barra_progresso.progress((idx + 1) / total_arquivos)
             status_texto.empty()
             barra_progresso.empty()
-            st.success("🎉 Arquivos processados com sucesso!")
-            st.download_button("📥 Baixar Comprovantes (.ZIP)", zip_buffer.getvalue(), "comprovantes.zip", "application/zip")
+            st.success(f"🎉 Processamento concluído com êxito! {total_arquivos} lote(s) mapeado(s).")
+            st.download_button("📥 Baixar Arquivos Separados (.ZIP)", zip_buffer.getvalue(), "comprovantes_organizados.zip", "application/zip")
 
-# --- MODULO 2: CONTROLE DE CERTIDÕES ---
+# --- MÓDULO 2: CONTROLE DE CERTIDÕES ---
 elif opcao_menu == "Controle de Certidões":
-    st.markdown('<p class="main-title">📋 Controle de Certidões Regularizadas</p>', unsafe_allow_html=True)
-    st.markdown('<p class="subtitle">Gerencie prazos e links de emissão para evitar inabilitações</p>', unsafe_allow_html=True)
-    st.write("---")
+    st.markdown("""
+        <div class='header-painel'>
+            <h1>📋 Gerenciamento de Certidões Negativas</h1>
+            <p>Monitore prazos de validade regulatórios para evitar inabilitações preventivas em certames públicos.</p>
+        </div>
+    """, unsafe_allow_html=True)
     
-    col_form, col_lista = st.columns([1, 2], gap="large")
-    
+    col_form, col_espacio = st.columns([2, 1])
     with col_form:
-        st.markdown("### ➕ Nova Certidão")
+        st.markdown("### ➕ Cadastrar Certidão")
         with st.form("form_certidao", clear_on_submit=True):
-            nome_cert = st.text_input("Nome do Documento")
-            link_cert = st.text_input("Link de Emissão")
-            venc_cert = st.date_input("Vencimento", datetime.today().date())
-            botao_cert = st.form_submit_button("Salvar")
+            nome_cert = st.text_input("Nome do Documento / Certidão (Ex: FGTS, Receita Federal)")
+            link_cert = st.text_input("URL / Link Direto para Emissão Rápida")
+            venc_cert = st.date_input("Data Limite de Vencimento", datetime.today().date())
+            botao_cert = st.form_submit_button("Salvar no Banco de Dados")
             
         if botao_cert and nome_cert:
             nova_cert = pd.DataFrame([{"Nome": nome_cert, "Link": link_cert, "Vencimento": venc_cert}])
             st.session_state.certidoes = pd.concat([st.session_state.certidoes, nova_cert], ignore_index=True)
             salvar_dados(st.session_state.certidoes, ARQUIVO_CERTIDOES)
+            st.success("Certidão registrada no painel!")
             st.rerun()
-
-    with col_lista:
-        st.markdown("### 🔍 Documentos Salvos")
-        df_cert = st.session_state.certidoes
-        if not df_cert.empty:
-            lista_exibicao = []
-            hoje = datetime.today().date()
-            for idx, linha in df_cert.iterrows():
-                vencimento = linha["Vencimento"]
-                if vencimento < hoje: status = "🔴 VENCIDA"
-                elif (vencimento - hoje).days <= 10: status = f"🟡 ATENÇÃO ({ (vencimento - hoje).days }d)"
-                else: status = "🟢 EM DIA"
-                lista_exibicao.append({
-                    "Status": status,
-                    "Certidão": linha["Nome"],
-                    "URL": linha["Link"],
-                    "Vencimento": vencimento.strftime("%d/%m/%Y")
-                })
-            st.dataframe(pd.DataFrame(lista_exibicao), use_container_width=True)
-            if st.button("🗑️ Limpar Banco de Dados"):
-                st.session_state.certidoes = pd.DataFrame(columns=["Nome", "Link", "Vencimento"])
-                if os.path.exists(ARQUIVO_CERTIDOES): os.remove(ARQUIVO_CERTIDOES)
-                st.rerun()
-        else:
-            st.info("Nenhuma certidão salva.")
-
-# --- MODULO 3: CIDADES GANHAS ---
-else:
-    st.markdown('<p class="main-title">🏙️ Monitoramento de Cidades & Licitações Ganhas</p>', unsafe_allow_html=True)
-    st.markdown('<p class="subtitle">Controle diário de Diários Oficiais e execuções de atas</p>', unsafe_allow_html=True)
+            
     st.write("---")
-    
-    # KPIs Rápidos no Topo
-    df_cont = st.session_state.contratos
-    total_ativos = len(df_cont[df_cont["Status"] == "Ativo"]) if not df_cont.empty else 0
-    
-    st.markdown(f"""
-        <div class="metric-card">
-            <span style='color: #888888; font-size: 14px;'>Contratos Ativos em Monitoramento</span><br>
-            <span style='font-size: 28px; font-weight: bold; color: #1E90FF;'>{total_ativos} Cidades</span>
+    st.markdown("### 🔍 Histórico de Regularidade")
+    df_cert = st.session_state.certidoes
+    if not df_cert.empty:
+        lista_exibicao = []
+        hoje = datetime.today().date()
+        for idx, linha in df_cert.iterrows():
+            vencimento = linha["Vencimento"]
+            if vencimento < hoje:
+                status = "🔴 VENCIDA"
+            elif (vencimento - hoje).days <= 10:
+                status = f"🟡 ATENÇÃO ({ (vencimento - hoje).days } dias)"
+            else:
+                status = "🟢 EM DIA"
+            lista_exibicao.append({
+                "Status Operacional": status,
+                "Nome do Documento": linha["Nome"],
+                "Link de Acesso": linha["Link"],
+                "Data de Vencimento": vencimento.strftime("%d/%m/%Y")
+            })
+        st.dataframe(pd.DataFrame(lista_exibicao), use_container_width=True)
+        
+        if st.button("⚠️ Limpar Histórico de Certidões"):
+            st.session_state.certidoes = pd.DataFrame(columns=["Nome", "Link", "Vencimento"])
+            if os.path.exists(ARQUIVO_CERTIDOES): os.remove(ARQUIVO_CERTIDOES)
+            st.rerun()
+    else:
+        st.info("Nenhum documento regulatório cadastrado até o momento.")
+
+# --- MÓDULO 3: CIDADES GANHAS & CONTRATOS ---
+else:
+    st.markdown("""
+        <div class='header-painel'>
+            <h1>🏙️ Painel de Contratos Ganhos & Diários Oficiais</h1>
+            <p>Controle estratégico de praças homologadas e lembretes imperativos de monitoramento de publicações de Diários Oficiais.</p>
         </div>
-        <br>
     """, unsafe_allow_html=True)
     
-    col_form_cont, col_lista_cont = st.columns([1, 2], gap="large")
-    
-    with col_form_cont:
-        st.markdown("### ➕ Registrar Contrato")
-        with st.form("form_contrato", clear_on_submit=True):
-            cidade = st.text_input("Cidade / Órgão")
-            num_contrato = st.text_input("Nº do Contrato/Ata")
-            modalidade = st.selectbox("Modalidade", [
-                "Concorrência Eletrônica", "Concorrência", "Pregão Eletrônico", 
-                "Pregão Presencial", "Dispensa de Licitação", "Inexigibilidade"
-            ])
-            status_contrato = st.selectbox("Status", ["Ativo", "Encerrado"])
-            botao_contrato = st.form_submit_button("Salvar")
-            
-        if botao_contrato and cidade:
-            novo_contrato = pd.DataFrame([{
-                "Cidade": cidade, "Contrato": num_contrato, 
-                "Modalidade": modalidade, "Status": status_contrato
-            }])
-            st.session_state.contratos = pd.concat([st.session_state.contratos, novo_contrato], ignore_index=True)
-            salvar_dados(st.session_state.contratos, ARQUIVO_CONTRATOS)
-            st.rerun()
-
-    with col_lista_cont:
-        st.markdown("### 📋 Alertas de Verificação Diária")
-        if not df_cont.empty:
-            lista_contratos_visuais = []
-            for idx, linha in df_cont.iterrows():
-                if linha["Status"] == "Ativo":
-                    alerta_diario = f"👀 Olhar Diário Oficial de {linha['Cidade']}"
-                    icone_status = "🟢 Ativo"
-                else:
-                    alerta_diario = "✅ Finalizado"
-                    icone_status = "⚫ Encerrado"
+    # --- PAINEL EXECUTIVO DE INDICADORES (CARDS PROFISSIONAIS) ---
