@@ -97,9 +97,9 @@ with st.sidebar:
         ["Separador e Conferência", "Controle de Certidões", "Cidades Ganhas (Contratos)"]
     )
     st.write("---")
-    st.caption("Versão 3.7 • Correção de Nomes")
+    st.caption("Versão 3.8 • Alinhamento Final")
 
-# --- CONTEÚDO PRINCIPAL ---
+# --- LÓGICA DO CONTEÚDO PRINCIPAL ---
 
 if opcao_menu == "Separador e Conferência":
     st.title("📄 Separador & Conferência Inteligente")
