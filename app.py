@@ -28,68 +28,44 @@ if 'certidoes' not in st.session_state:
 if 'contratos' not in st.session_state:
     st.session_state.contratos = carregar_dados(ARQUIVO_CONTRATOS, ["Cidade", "Contrato", "Modalidade", "Status"])
 
-# --- FUNÇÕES DE LIMPEZA E EXTRAÇÃO ---
-def limpar_texto(t):
-    return re.sub(r'[^a-zA-Z0-9]', '', str(t).upper().strip())
-
-def extrair_dados_pdf(texto):
+# --- FUNÇÃO DE EXTRAÇÃO DE NOME ---
+def extrair_nome(texto):
     nome = "Favorecido_Nao_Encontrado"
-    p_nomes = [r"Favorecido:\s*([^\n]+)", r"Nome:\s*([^\n]+)", r"Recebedor:\s*([^\n]+)", r"Nome do Favorecido:\s*([^\n]+)"]
-    for p in p_nomes:
+    padroes = [r"Favorecido:\s*([^\n]+)", r"Nome:\s*([^\n]+)", r"Recebedor:\s*([^\n]+)", r"Nome do Favorecido:\s*([^\n]+)"]
+    for p in padroes:
         res = re.search(p, texto, re.IGNORECASE)
         if res:
             nome = re.sub(r'[\\/*?:"<>|]', "", res.group(1).strip())[:40]
             break
-            
-    valores = re.findall(r'(?:R\$\s*)?(\d+(?:\.\d{3})*,\d{2})', texto)
-    valor_achado = valores[0] if valores else "0,00"
-    
-    contas = re.findall(r'(?:Conta|C/C|Agência/Conta):\s*([0-9Xx-]+)', texto, re.IGNORECASE)
-    conta_achada = contas[0] if contas else "Nao_Encontrada"
-    
-    return nome, valor_achado, conta_achada
+    return nome
 
-# --- CONSTRUÇÃO DO MENU LATERAL COMPLETO ---
+# --- CONSTRUÇÃO DO MENU LATERAL ---
 with st.sidebar:
     st.title("💼 Sistema Pro")
     st.write("Abas de operação do painel:")
     opcao_menu = st.radio(
         "Navegação", 
-        ["Separador e Conferência", "Controle de Certidões", "Cidades Ganhas (Contratos)"],
+        ["Separador de Comprovantes", "Controle de Certidões", "Cidades Ganhas (Contratos)"],
         label_visibility="collapsed"
     )
     st.write("---")
-    st.caption("Versão Corporativa Multitarefa")
+    st.caption("Versão 4.1 • Direta e Estável")
 
-# --- CONTEÚDO DA PÁGINA 1: SEPARADOR E CONFERÊNCIA ---
-if opcao_menu == "Separador e Conferência":
-    st.title("📄 Separador & Conferência Inteligente")
-    st.write("Envie os PDFs e selecione a aba específica do seu Excel para realizar a auditoria de Nome, Conta e Valor.")
+# --- CONTEÚDO DA PÁGINA 1: APENAS SEPARADOR ---
+if opcao_menu == "Separador de Comprovantes":
+    st.title("📄 Separador Inteligente de Comprovantes")
+    st.write("Insira um ou mais arquivos PDF para recortar e renomear automaticamente pelo nome do favorecido.")
     
-    col_up1, col_up2 = st.columns(2)
-    with col_up1:
-        st.subheader("📤 1. Comprovantes (PDF)")
-        uploaded_files = st.file_uploader("Selecione os arquivos PDF", type=["pdf"], accept_multiple_files=True, key="pdf_up")
-    with col_up2:
-        st.subheader("📊 2. Planilha (Excel)")
-        excel_file = st.file_uploader("Selecione a planilha .xlsx", type=["xlsx"], accept_multiple_files=False, key="xlsx_up")
-
-    aba_selecionada = None
-    if excel_file is not None:
-        xl = pd.ExcelFile(excel_file)
-        abas_disponiveis = xl.sheet_names
-        st.subheader("📑 3. Escolha a Aba da Planilha")
-        aba_selecionada = st.selectbox("Selecione a aba desejada do seu arquivo enviado:", abas_disponiveis)
+    uploaded_files = st.file_uploader("Selecione os arquivos PDF", type=["pdf"], accept_multiple_files=True)
 
     if uploaded_files:
         st.write("")
-        if st.button("🚀 Iniciar Processamento Geral"):
+        if st.button("🚀 Iniciar Processamento e Salvar"):
             import zipfile
             zip_buffer = io.BytesIO()
             nomes_contagem = {}
             barra = st.progress(0)
             total = len(uploaded_files)
-            dados_extraidos_pdf = []
             
             with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
                 for idx, uploaded_file in enumerate(uploaded_files):
@@ -98,8 +74,7 @@ if opcao_menu == "Separador e Conferência":
                         pdf_recortador = PdfReader(io.BytesIO(pdf_bytes))
                         for i in range(len(leitor_txt.pages)):
                             txt = leitor_txt.pages[i].extract_text() or ""
-                            nome, val, conta = extrair_dados_pdf(txt)
-                            dados_extraidos_pdf.append({"Nome_PDF": nome, "Valor_PDF": val, "Conta_PDF": conta})
+                            nome = extrair_nome(txt)
                             
                             if nome in nomes_contagem:
                                 nomes_contagem[nome] += 1
@@ -116,46 +91,8 @@ if opcao_menu == "Separador e Conferência":
                             zip_file.writestr(f"{nome_final}.pdf", pag_buf.read())
                     barra.progress((idx + 1) / total)
             
-            st.success("🎉 Separação de PDFs concluída!")
-            st.download_button("📥 Baixar Arquivos Organizados (.ZIP)", zip_buffer.getvalue(), "comprovantes.zip", "application/zip")
-            
-            if excel_file is not None and aba_selecionada is not None:
-                st.write("---")
-                st.subheader(f"📊 Relatório de Auditoria — Aba Escolhida: {aba_selecionada}")
-                df_excel = pd.read_excel(excel_file, sheet_name=aba_selecionada)
-                colunas_necessarias = ['Nome', 'Conta', 'Valor']
-                
-                if not all(col in df_excel.columns for col in colunas_necessarias):
-                    st.error(f"Erro: A aba '{aba_selecionada}' precisa ter as colunas: 'Nome', 'Conta' e 'Valor'")
-                else:
-                    relatorio_final = []
-                    for _, linha_ex in df_excel.iterrows():
-                        ex_nome = str(linha_ex['Nome']).strip()
-                        ex_conta = str(linha_ex['Conta']).strip()
-                        try:
-                            ex_valor = f"{float(linha_ex['Valor']):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-                        except:
-                            ex_valor = "0,00"
-                        
-                        status = "🔴 Não Encontrado"
-                        for pdf_item in dados_extraidos_pdf:
-                            nome_bate = limpar_texto(ex_nome) in limpar_texto(pdf_item["Nome_PDF"]) or limpar_texto(pdf_item["Nome_PDF"]) in limpar_texto(ex_nome)
-                            valor_bate = limpar_texto(ex_valor) == limpar_texto(pdf_item["Valor_PDF"])
-                            
-                            if nome_bate and valor_bate:
-                                status = "🟢 Confirmado"
-                                break
-                            elif nome_bate and not valor_bate:
-                                status = "🟡 Valor Divergente"
-                                break
-                        
-                        relatorio_final.append({
-                            "Resultado": status,
-                            "Nome Planilha": ex_nome,
-                            "Conta Planilha": ex_conta,
-                            "Valor Planilha": f"R$ {ex_valor}"
-                        })
-                    st.dataframe(pd.DataFrame(relatorio_final), use_container_width=True)
+            st.success("🎉 Processamento concluído com sucesso!")
+            st.download_button("📥 Baixar Comprovantes Salvos (.ZIP)", zip_buffer.getvalue(), "comprovantes.zip", "application/zip")
 
 # --- CONTEÚDO DA PÁGINA 2: CERTIDÕES ---
 elif opcao_menu == "Controle de Certidões":
@@ -205,3 +142,29 @@ else:
     modalidade = st.selectbox("Modalidade", ["Concorrência Eletrônica", "Pregão Eletrônico", "Dispensa de Licitação", "Concorrência", "Pregão Presencial"])
     status_contrato = st.selectbox("Situação", ["Ativo", "Encerrado"])
     
+    if st.button("Salvar Registro Licitatório"):
+        if cidade:
+            novo_contrato = pd.DataFrame([{"Cidade": cidade, "Contrato": num_contrato, "Modalidade": modalidade, "Status": status_contrato}])
+            st.session_state.contratos = pd.concat([st.session_state.contratos, novo_contrato], ignore_index=True)
+            salvar_dados(st.session_state.contratos, ARQUIVO_CONTRATOS)
+            st.success("Contrato registrado!")
+            st.rerun()
+        else:
+            st.error("Digite o nome da cidade.")
+        
+    st.write("---")
+    st.write("### 📋 Relatório de Verificação de Diários Oficiais")
+    df_cont = st.session_state.contratos
+    if not df_cont.empty:
+        lista_contratos_visuais = []
+        for idx, row in df_cont.iterrows():
+            alerta_diario = f"👀 Checar Diário Oficial de {row['Cidade']}" if row["Status"] == "Ativo" else "✅ Finalizado"
+            lista_contratos_visuais.append({"Ação Diária Obrigatória": alerta_diario, "Status": "🟢 Ativo" if row["Status"] == "Ativo" else "⚫ Encerrado", "Cidade / Órgão": row["Cidade"], "Nº do Contrato": row["Contrato"]})
+        st.dataframe(pd.DataFrame(lista_contratos_visuais), use_container_width=True)
+        
+        if st.button("⚠️ Apagar Lista de Contratos"):
+            st.session_state.contratos = pd.DataFrame(columns=["Cidade", "Contrato", "Modalidade", "Status"])
+            if os.path.exists(ARQUIVO_CONTRATOS): os.remove(ARQUIVO_CONTRATOS)
+            st.rerun()
+    else:
+        st.info("Nenhuma praça registrada para acompanhamento.")
