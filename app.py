@@ -8,18 +8,40 @@ from datetime import datetime
 # Configuração Base do Aplicativo com Tema Escuro Forçado
 st.set_page_config(page_title="Sistema Pro - Licitações", layout="wide", initial_sidebar_state="expanded")
 
-# --- DESIGN PREMIUM DARK MODE (CSS) ---
+# --- DESIGN PREMIUM DARK MODE COMPLETO (CSS) ---
 st.markdown("""
     <style>
+    /* Fundo Geral do Aplicativo */
     .stApp { background-color: #0F172A !important; font-family: 'Segoe UI', Roboto, sans-serif; }
+    
+    /* Customização Forçada da Barra Lateral (Sidebar) */
     section[data-testid="stSidebar"] { background-color: #1E293B !important; padding-top: 20px; border-right: 1px solid #334155 !important; }
-    section[data-testid="stSidebar"] .stMarkdown p, section[data-testid="stSidebar"] label, section[data-testid="stSidebar"] span { color: #F8FAFC !important; font-weight: 600 !important; }
+    
+    /* CORREÇÃO DO TEXTO INVISÍVEL NO MENU LATERAL */
+    section[data-testid="stSidebar"] div[role="radiogroup"] label {
+        color: #F8FAFC !important;
+        font-weight: 600 !important;
+        font-size: 15px !important;
+        margin-bottom: 5px !important;
+    }
+    section[data-testid="stSidebar"] .stMarkdown p, section[data-testid="stSidebar"] span, section[data-testid="stSidebar"] h3 { 
+        color: #F8FAFC !important; 
+        font-weight: 600 !important; 
+    }
+    
+    /* Títulos e Textos Principais */
     .header-painel { font-size: 28px !important; font-weight: 700 !important; color: #F8FAFC !important; margin-top: 10px !important; }
     .sub-painel { font-size: 14px !important; color: #94A3B8 !important; margin-bottom: 25px !important; }
+    
+    /* Caixa de Identidade */
     .logo-box { background-color: #EF4444; color: white !important; padding: 12px; border-radius: 8px; font-weight: 700; font-size: 18px; text-align: center; margin-bottom: 30px; }
+    
+    /* Blocos/Containers de Conteúdo */
     div[data-testid="stForm"], .stDropzone, div.block-container > div { background-color: #1E293B !important; border: 1px solid #334155 !important; border-radius: 12px !important; padding: 25px !important; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3) !important; margin-bottom: 25px !important; }
     label, p, h4 { color: #F1F5F9 !important; }
     .stDropzone { border: 2px dashed #475569 !important; background-color: #0F172A !important; }
+    
+    /* Botões Grandes e Modernos */
     div.stButton > button { background-color: #2563EB !important; color: #FFFFFF !important; font-weight: 600 !important; border-radius: 8px !important; width: 100% !important; height: 48px; border: none !important; }
     div.stButton > button:hover { background-color: #1D4ED8 !important; }
     div[data-testid="stDataFrame"] { border-radius: 8px !important; border: 1px solid #334155 !important; background-color: #1E293B !important; }
@@ -45,7 +67,7 @@ if 'certidoes' not in st.session_state:
 if 'contratos' not in st.session_state:
     st.session_state.contratos = carregar_dados(ARQUIVO_CONTRATOS, ["Cidade", "Contrato", "Modalidade", "Status"])
 
-# --- FUNÇÕES DE AUXÍLIO E PARSING ---
+# --- FUNÇÕES DE AUXÍLIO ---
 def limpar_texto(t):
     return re.sub(r'[^a-zA-Z0-9]', '', str(t).upper().strip())
 
@@ -175,12 +197,3 @@ if opcao_menu == "Separador e Conferência":
             if excel_file is not None and aba_selecionada is not None:
                 st.write("---")
                 st.markdown(f"### 📊 Relatório de Auditoria — Aba: `{aba_selecionada}`")
-                processar_auditoria_excel(excel_file, aba_selecionada, dados_extraidos_pdf)
-
-elif opcao_menu == "Controle de Certidões":
-    st.markdown('<div class="header-painel">📋 Painel de Controle de Certidões</div>', unsafe_allow_html=True)
-    with st.form("form_certidao", clear_on_submit=True):
-        st.markdown("#### ➕ Cadastrar Nova Certidão")
-        nome_cert = st.text_input("Nome / Órgão Emissor")
-        link_cert = st.text_input("URL / Link Direto de Acesso")
-        venc_cert = st.date_input("Data de Vencimento Oficial", datetime.today().date())
