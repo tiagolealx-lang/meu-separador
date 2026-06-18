@@ -1,3 +1,6 @@
 streamlit
 pypdf
 pdfplumber
+pdf2image
+pytesseract
+pandas
